@@ -56,7 +56,7 @@ export default function LiveArenaPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-500 mr-2">Streaming Provider:</span>
-            <span className="nexa-badge bg-zinc-50 text-zinc-800 text-xs font-bold">
+            <span className="apple-badge bg-zinc-50 text-zinc-800 text-xs font-bold">
               🟣 Twitch Interactive
             </span>
           </div>
@@ -111,7 +111,7 @@ export default function LiveArenaPage() {
         {loading ? (
           <div className="py-20 text-center text-zinc-400">Loading live arena schedule...</div>
         ) : filteredMatches.length === 0 ? (
-          <div className="nexa-card p-12 text-center text-zinc-500">
+          <div className="apple-card p-12 text-center text-zinc-500">
             <Tv className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
             <h4 className="text-lg font-bold text-zinc-800 mb-1">No Matches Found in this Filter</h4>
             <p className="text-sm text-zinc-500 max-w-sm mx-auto">
@@ -128,7 +128,7 @@ export default function LiveArenaPage() {
               return (
                 <div
                   key={match.id}
-                  className={`nexa-card p-5 flex flex-col justify-between transition-all ${
+                  className={`apple-card p-6 flex flex-col justify-between transition-all ${
                     isLive ? 'border-rose-400 ring-2 ring-rose-500/10' : ''
                   }`}
                 >

@@ -114,7 +114,7 @@ export default function RegisterPage() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           
           {/* Main Form Box */}
-          <div className="md:col-span-7 nexa-card p-6 sm:p-8">
+          <div className="md:col-span-7 apple-card p-6 sm:p-8">
             {step === 1 && (
               <form onSubmit={handleNextStep} className="space-y-4">
                 <div>
@@ -231,7 +231,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" className="w-full nexa-btn-primary py-3.5 text-sm">
+                  <button type="submit" className="w-full apple-btn-primary py-3.5 text-xs">
                     Continue to Confirmation →
                   </button>
                 </div>
@@ -293,7 +293,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="nexa-btn-secondary text-xs flex-1"
+                    className="apple-btn-secondary text-xs flex-1"
                   >
                     ← Edit Details
                   </button>
@@ -301,7 +301,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="nexa-btn-primary text-xs flex-1 py-3.5"
+                    className="apple-btn-primary text-xs flex-1 py-3.5"
                   >
                     {submitting ? 'Registering...' : 'Confirm Registration'}
                   </button>
@@ -334,10 +334,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                  <Link href="/bracket" className="nexa-btn-primary text-xs">
+                  <Link href="/bracket" className="apple-btn-primary text-xs">
                     View Tournament Bracket
                   </Link>
-                  <Link href="/live" className="nexa-btn-secondary text-xs">
+                  <Link href="/live" className="apple-btn-secondary text-xs">
                     Go to Live Arena
                   </Link>
                 </div>
@@ -347,7 +347,7 @@ export default function RegisterPage() {
 
           {/* Right Column: Tournament Details Card */}
           <div className="md:col-span-5 space-y-6">
-            <div className="nexa-card p-6 space-y-4">
+            <div className="apple-card p-6 space-y-4">
               <h3 className="text-base font-bold text-zinc-950 pb-3 border-b border-zinc-100">
                 Tournament Summary
               </h3>

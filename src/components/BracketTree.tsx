@@ -12,10 +12,10 @@ interface BracketTreeProps {
 export default function BracketTree({ matches }: BracketTreeProps) {
   if (!matches || matches.length === 0) {
     return (
-      <div className="nexa-card p-12 text-center text-zinc-500">
+      <div className="apple-card p-12 text-center text-zinc-500">
         <Trophy className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
-        <h4 className="text-lg font-bold text-zinc-800 mb-1">Bracket Not Generated Yet</h4>
-        <p className="text-sm text-zinc-500 max-w-sm mx-auto">
+        <h4 className="text-base font-bold text-zinc-800 mb-1">Bracket Not Generated Yet</h4>
+        <p className="text-xs text-zinc-500 max-w-sm mx-auto">
           Tournament administrators generate the bracket once registration closes and participants are verified.
         </p>
       </div>
@@ -41,24 +41,24 @@ export default function BracketTree({ matches }: BracketTreeProps) {
   }
 
   return (
-    <div className="w-full overflow-x-auto pb-8 pt-4">
-      <div className="min-w-[920px] flex items-stretch gap-8 px-4">
-        {rounds.map((round, rIndex) => (
+    <div className="w-full overflow-x-auto pb-8 pt-2">
+      <div className="min-w-[940px] flex items-stretch gap-8 px-2">
+        {rounds.map((round) => (
           <div key={round.roundNumber} className="flex-1 flex flex-col">
             {/* Round Header */}
-            <div className="mb-6 pb-2 border-b border-zinc-200 flex items-center justify-between">
+            <div className="mb-6 pb-2.5 border-b border-black/[0.05] flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
                   Stage {round.roundNumber}
                 </span>
-                <h3 className="font-extrabold text-base text-zinc-950 flex items-center gap-1.5">
+                <h3 className="font-extrabold text-[15px] tracking-tight text-zinc-950 flex items-center gap-1.5">
                   {round.roundName}
                   {round.roundNumber === maxRound && (
                     <Trophy className="w-4 h-4 text-amber-500" />
                   )}
                 </h3>
               </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
                 {round.matches.length} {round.matches.length === 1 ? 'Match' : 'Matches'}
               </span>
             </div>
@@ -73,26 +73,26 @@ export default function BracketTree({ matches }: BracketTreeProps) {
                 return (
                   <div
                     key={match.id}
-                    className={`relative nexa-card p-4 transition-all duration-200 hover:shadow-elevated ${
+                    className={`relative apple-card p-4 transition-all duration-300 ${
                       isLive ? 'border-rose-400 ring-2 ring-rose-500/10' : ''
                     }`}
                   >
-                    {/* Match Top Bar */}
-                    <div className="flex items-center justify-between text-[11px] text-zinc-500 mb-3 pb-2 border-b border-zinc-100">
-                      <span className="font-bold uppercase tracking-wider text-zinc-400">
-                        Match #{match.matchNumber}
+                    {/* Top bar */}
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 mb-3 pb-2 border-b border-black/[0.04]">
+                      <span className="font-bold uppercase tracking-wider text-zinc-400 text-[10px]">
+                        #{match.matchNumber}
                       </span>
                       {isLive ? (
-                        <span className="inline-flex items-center gap-1 font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-1 font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full text-[10px]">
                           <Radio className="w-3 h-3 animate-pulse" />
                           LIVE
                         </span>
                       ) : match.status === 'COMPLETED' ? (
-                        <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]">
                           Final Score
                         </span>
                       ) : (
-                        <span className="font-medium text-zinc-500">
+                        <span className="font-medium text-zinc-400 text-[10px]">
                           {match.scheduledTime
                             ? new Date(match.scheduledTime).toLocaleTimeString([], {
                                 hour: '2-digit',
@@ -105,22 +105,22 @@ export default function BracketTree({ matches }: BracketTreeProps) {
 
                     {/* Participant 1 */}
                     <div
-                      className={`flex items-center justify-between p-2 rounded-xl mb-1.5 transition-colors ${
+                      className={`flex items-center justify-between p-2 rounded-2xl mb-1.5 transition-colors ${
                         isP1Winner
-                          ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200'
-                          : 'bg-zinc-50 text-zinc-800 font-medium'
+                          ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200/80'
+                          : 'bg-zinc-50/80 text-zinc-800 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <span className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 text-xs flex items-center justify-center font-bold">
+                        <span className="w-6 h-6 rounded-full bg-zinc-200/80 text-zinc-700 text-xs flex items-center justify-center font-bold">
                           {match.participant1Name ? match.participant1Name.charAt(0) : '?'}
                         </span>
-                        <span className="truncate text-sm">
-                          {match.participant1Name || 'TBD (Awaiting Round)'}
+                        <span className="truncate text-xs">
+                          {match.participant1Name || 'TBD (Awaiting)'}
                         </span>
                       </div>
                       <span
-                        className={`text-sm font-mono px-2 py-0.5 rounded-md ${
+                        className={`text-xs font-mono px-2 py-0.5 rounded-lg ${
                           isP1Winner ? 'bg-emerald-600 text-white font-bold' : 'bg-zinc-200/70 text-zinc-800'
                         }`}
                       >
@@ -130,22 +130,22 @@ export default function BracketTree({ matches }: BracketTreeProps) {
 
                     {/* Participant 2 */}
                     <div
-                      className={`flex items-center justify-between p-2 rounded-xl mb-3 transition-colors ${
+                      className={`flex items-center justify-between p-2 rounded-2xl mb-3 transition-colors ${
                         isP2Winner
-                          ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200'
-                          : 'bg-zinc-50 text-zinc-800 font-medium'
+                          ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200/80'
+                          : 'bg-zinc-50/80 text-zinc-800 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <span className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 text-xs flex items-center justify-center font-bold">
+                        <span className="w-6 h-6 rounded-full bg-zinc-200/80 text-zinc-700 text-xs flex items-center justify-center font-bold">
                           {match.participant2Name ? match.participant2Name.charAt(0) : '?'}
                         </span>
-                        <span className="truncate text-sm">
-                          {match.participant2Name || 'TBD (Awaiting Round)'}
+                        <span className="truncate text-xs">
+                          {match.participant2Name || 'TBD (Awaiting)'}
                         </span>
                       </div>
                       <span
-                        className={`text-sm font-mono px-2 py-0.5 rounded-md ${
+                        className={`text-xs font-mono px-2 py-0.5 rounded-lg ${
                           isP2Winner ? 'bg-emerald-600 text-white font-bold' : 'bg-zinc-200/70 text-zinc-800'
                         }`}
                       >
@@ -153,10 +153,10 @@ export default function BracketTree({ matches }: BracketTreeProps) {
                       </span>
                     </div>
 
-                    {/* Match Action Link */}
+                    {/* Link */}
                     <Link
                       href={`/matches/${match.id}`}
-                      className="w-full py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 hover:bg-black hover:text-white transition flex items-center justify-center gap-1 text-zinc-700"
+                      className="w-full py-1.5 text-xs font-bold rounded-xl bg-zinc-100/80 hover:bg-black hover:text-white transition flex items-center justify-center gap-1 text-zinc-700"
                     >
                       {isLive ? (
                         <>
@@ -166,7 +166,7 @@ export default function BracketTree({ matches }: BracketTreeProps) {
                       ) : (
                         <>
                           <span>Match Room</span>
-                          <ArrowRight className="w-3 h-3" />
+                          <ArrowRight className="w-3 h-3 opacity-60" />
                         </>
                       )}
                     </Link>
