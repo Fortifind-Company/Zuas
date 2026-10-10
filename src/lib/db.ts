@@ -10,8 +10,12 @@ import {
   Announcement,
   GlobalSettings,
   AdminAuditLog,
+  MatchEvidence,
+  TournamentGroup,
+  HeadToHeadStats,
 } from './types';
 import { generateSingleEliminationBracket, advanceBracketWinner } from './bracketGenerator';
+import { generateGroupStageAndMatches, recalculateGroupStandings } from './groupStageGenerator';
 import { extractTwitchChannel } from './twitch';
 
 interface DatabaseSchema {
@@ -24,6 +28,8 @@ interface DatabaseSchema {
   announcements: Announcement[];
   settings: GlobalSettings;
   auditLogs: AdminAuditLog[];
+  groups: TournamentGroup[];
+  evidence: MatchEvidence[];
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -245,6 +251,8 @@ function getInitialData(): DatabaseSchema {
     announcements,
     settings,
     auditLogs,
+    groups: [],
+    evidence: [],
   };
 }
 
@@ -762,6 +770,208 @@ export function createAnnouncement(data: Omit<Announcement, 'id' | 'createdAt'>)
 
 export function getProfiles(): PlayerProfile[] {
   return readDb().profiles;
+}
+
+export function getProfileById(id: string): (PlayerProfile & { matches: TournamentMatch[] }) | null {
+  const db = readDb();
+  const profile = db.profiles.find(p => p.id === id || p.displayName.toLowerCase() === id.toLowerCase());
+  if (!profile) return null;
+
+  // Find all matches featuring this player
+  const matches = db.matches.filter(
+    m => m.participant1Name === profile.displayName || m.participant2Name === profile.displayName
+  );
+
+  return {
+    ...profile,
+    matches,
+  };
+}
+
+export function getHeadToHead(player1Name: string, player2Name: string): HeadToHeadStats {
+  const db = readDb();
+  const p1Lower = player1Name.toLowerCase();
+  const p2Lower = player2Name.toLowerCase();
+
+  const directMatches = db.matches.filter(m => {
+    const p1 = m.participant1Name?.toLowerCase();
+    const p2 = m.participant2Name?.toLowerCase();
+    return (
+      (p1 === p1Lower && p2 === p2Lower) ||
+      (p1 === p2Lower && p2 === p1Lower)
+    );
+  });
+
+  let p1Wins = 0;
+  let p2Wins = 0;
+  let draws = 0;
+
+  for (const m of directMatches) {
+    if (m.status !== 'COMPLETED') continue;
+    if (m.participant1Score === m.participant2Score) {
+      draws++;
+    } else {
+      const p1IsFirst = m.participant1Name?.toLowerCase() === p1Lower;
+      const p1Won = p1IsFirst ? m.participant1Score > m.participant2Score : m.participant2Score > m.participant1Score;
+      if (p1Won) p1Wins++;
+      else p2Wins++;
+    }
+  }
+
+  return {
+    player1: { id: player1Name, name: player1Name, wins: p1Wins },
+    player2: { id: player2Name, name: player2Name, wins: p2Wins },
+    draws,
+    totalMatches: directMatches.length,
+    recentMatches: directMatches.slice(0, 5),
+  };
+}
+
+// ---------------- MATCH EVIDENCE / SCREENSHOT VERIFICATION ----------------
+export function submitMatchEvidence(data: {
+  matchId: string;
+  submittedBy: string;
+  participantIndex: 1 | 2;
+  reportedScore1: number;
+  reportedScore2: number;
+  screenshotUrl: string;
+  notes?: string;
+}): MatchEvidence {
+  const db = readDb();
+  if (!db.evidence) db.evidence = [];
+
+  const match = db.matches.find(m => m.id === data.matchId);
+  if (!match) throw new Error('Match not found.');
+
+  const evidenceItem: MatchEvidence = {
+    id: `ev_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    matchId: data.matchId,
+    tournamentId: match.tournamentId,
+    submittedBy: data.submittedBy,
+    participantIndex: data.participantIndex,
+    reportedScore1: Number(data.reportedScore1),
+    reportedScore2: Number(data.reportedScore2),
+    screenshotUrl: data.screenshotUrl,
+    notes: data.notes,
+    status: 'PENDING',
+    submittedAt: new Date().toISOString(),
+  };
+
+  db.evidence.unshift(evidenceItem);
+
+  // Link to match evidence array
+  if (!match.evidence) match.evidence = [];
+  match.evidence.unshift(evidenceItem);
+
+  db.auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    action: 'MATCH_EVIDENCE_SUBMITTED',
+    entityType: 'MATCH',
+    entityId: match.id,
+    tournamentId: match.tournamentId,
+    details: `${data.submittedBy} reported score ${data.reportedScore1}-${data.reportedScore2} with screenshot proof.`,
+    performedBy: data.submittedBy,
+    performedAt: new Date().toISOString(),
+  });
+
+  writeDb(db);
+  return evidenceItem;
+}
+
+export function getMatchEvidence(matchId?: string): MatchEvidence[] {
+  const db = readDb();
+  if (!db.evidence) return [];
+  if (matchId) {
+    return db.evidence.filter(e => e.matchId === matchId);
+  }
+  return db.evidence;
+}
+
+export function reviewMatchEvidence(
+  evidenceId: string,
+  decision: 'APPROVED' | 'REJECTED',
+  reviewedBy: string = 'Administrator'
+): { evidence: MatchEvidence; match?: TournamentMatch } {
+  const db = readDb();
+  if (!db.evidence) db.evidence = [];
+
+  const item = db.evidence.find(e => e.id === evidenceId);
+  if (!item) throw new Error('Evidence record not found.');
+
+  item.status = decision;
+  item.reviewedAt = new Date().toISOString();
+  item.reviewedBy = reviewedBy;
+
+  writeDb(db);
+
+  let match: TournamentMatch | undefined;
+
+  if (decision === 'APPROVED') {
+    const freshDb = readDb();
+    const targetMatch = freshDb.matches.find(m => m.id === item.matchId);
+    if (targetMatch) {
+      const winnerId =
+        item.reportedScore1 > item.reportedScore2
+          ? targetMatch.participant1Id
+          : targetMatch.participant2Id;
+
+      if (winnerId) {
+        match = updateMatchScore(targetMatch.id, winnerId, item.reportedScore1, item.reportedScore2);
+      }
+    }
+  }
+
+  return { evidence: item, match };
+}
+
+// ---------------- GROUP STAGE & STANDINGS ----------------
+export function getTournamentGroups(tournamentId: string): TournamentGroup[] {
+  const db = readDb();
+  if (!db.groups) return [];
+  const groups = db.groups.filter(g => g.tournamentId === tournamentId);
+  // Recalculate standings live
+  return groups.map(g => ({
+    ...g,
+    standings: recalculateGroupStandings(g, db.matches),
+  }));
+}
+
+export function generateGroupStage(tournamentId: string): { groups: TournamentGroup[]; matches: TournamentMatch[] } {
+  const db = readDb();
+  const tournament = db.tournaments.find(t => t.id === tournamentId);
+  if (!tournament) throw new Error('Tournament not found.');
+
+  const participants = db.participants.filter(p => p.tournamentId === tournamentId);
+  if (participants.length < 4) {
+    throw new Error('At least 4 participants required for Group Stage.');
+  }
+
+  const { groups, matches } = generateGroupStageAndMatches(
+    tournamentId,
+    participants,
+    tournament.startDate
+  );
+
+  if (!db.groups) db.groups = [];
+  db.groups = db.groups.filter(g => g.tournamentId !== tournamentId);
+  db.groups.push(...groups);
+
+  db.matches = db.matches.filter(m => m.tournamentId !== tournamentId);
+  db.matches.push(...matches);
+
+  db.auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    action: 'GROUP_STAGE_GENERATED',
+    entityType: 'BRACKET',
+    entityId: tournamentId,
+    tournamentId,
+    details: `Generated ${groups.length} groups and ${matches.length} fixtures for tournament ${tournament.name}`,
+    performedBy: 'Administrator',
+    performedAt: new Date().toISOString(),
+  });
+
+  writeDb(db);
+  return { groups, matches };
 }
 
 export function getAuditLogs(): AdminAuditLog[] {

@@ -7,7 +7,7 @@ export type TournamentStatus =
   | 'COMPLETED'
   | 'ARCHIVED';
 
-export type TournamentFormat = 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION' | 'ROUND_ROBIN';
+export type TournamentFormat = 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION' | 'ROUND_ROBIN' | 'GROUP_STAGE_KNOCKOUT';
 
 export type PlayerPlatform = 'Android' | 'iOS';
 
@@ -16,6 +16,50 @@ export type StreamStatus = 'NONE' | 'CONFIGURED' | 'LIVE' | 'ENDED' | 'UNAVAILAB
 export type MatchStatus = 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'DISPUTED';
 
 export type RegistrationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface MatchEvidence {
+  id: string;
+  matchId: string;
+  tournamentId: string;
+  submittedBy: string; // Player display name or ID
+  participantIndex: 1 | 2;
+  reportedScore1: number;
+  reportedScore2: number;
+  screenshotUrl: string; // Base64 or image URL
+  notes?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
+export interface GroupStanding {
+  participantId: string;
+  displayName: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+}
+
+export interface TournamentGroup {
+  id: string;
+  tournamentId: string;
+  name: string; // e.g. "Group A"
+  standings: GroupStanding[];
+}
+
+export interface HeadToHeadStats {
+  player1: { id: string; name: string; wins: number };
+  player2: { id: string; name: string; wins: number };
+  draws: number;
+  totalMatches: number;
+  recentMatches: TournamentMatch[];
+}
 
 export interface Tournament {
   id: string;
@@ -127,6 +171,9 @@ export interface TournamentMatch {
   winnerId?: string | null;
   nextMatchId?: string | null;
   isFinal?: boolean;
+  stageType?: 'GROUP' | 'KNOCKOUT';
+  groupId?: string;
+  evidence?: MatchEvidence[];
 }
 
 export interface Announcement {

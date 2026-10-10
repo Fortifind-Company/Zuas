@@ -1,27 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useLiveSync } from '@/lib/useLiveSync';
+import MatchdayFlyerModal from '@/components/MatchdayFlyerModal';
 import { TournamentMatch } from '@/lib/types';
-import { Tv, Radio, Clock, CheckCircle2, Filter, AlertCircle, ArrowRight, ExternalLink } from 'lucide-react';
+import {
+  Tv,
+  Radio,
+  Clock,
+  CheckCircle2,
+  Filter,
+  AlertCircle,
+  ArrowRight,
+  ExternalLink,
+  Share2,
+  Wifi,
+  Users,
+} from 'lucide-react';
 
 export default function LiveArenaPage() {
   const [filter, setFilter] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED'>('ALL');
-  const [matches, setMatches] = useState<TournamentMatch[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedFlyerMatch, setSelectedFlyerMatch] = useState<TournamentMatch | null>(null);
 
-  useEffect(() => {
-    fetch('/api/tournaments/efootball-mobile-ghana-championship-s1/bracket')
-      .then(res => res.json())
-      .then(json => {
-        if (json.success) {
-          setMatches(json.data || []);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  // Real-time Live Sync Polling
+  const { data, loading, isSyncing, refresh } = useLiveSync(undefined, 6000);
 
+  const matches: TournamentMatch[] = data?.allMatches || [];
   const liveMatches = matches.filter(m => m.streamStatus === 'LIVE' || m.status === 'LIVE');
   const upcomingMatches = matches.filter(m => m.status === 'SCHEDULED' && m.streamStatus !== 'LIVE');
   const completedMatches = matches.filter(m => m.status === 'COMPLETED');
@@ -42,21 +47,30 @@ export default function LiveArenaPage() {
         {/* Header */}
         <div className="border-b border-zinc-200 pb-8 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 text-zinc-900 text-xs font-semibold mb-2">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              <span>Twitch Broadcasting Center</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 text-zinc-900 text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                <span>Twitch Broadcasting Center</span>
+              </div>
+
+              {/* Real-Time Live Sync Status Beacon */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Wifi className={`w-3 h-3 ${isSyncing ? 'animate-spin text-emerald-500' : 'text-emerald-600'}`} />
+                <span>LIVE SYNC ACTIVE</span>
+              </div>
             </div>
+
             <h1 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
               Live Arena
             </h1>
             <p className="text-zinc-600 mt-1 text-sm">
-              Watch Ghanaian tournament matches live on embedded Twitch streams. No paid subscription required.
+              Watch Ghanaian tournament matches live on embedded Twitch streams. 100% Free to watch.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-500 mr-2">Streaming Provider:</span>
-            <span className="apple-badge bg-zinc-50 text-zinc-800 text-xs font-bold">
+            <span className="apple-badge bg-zinc-50 text-zinc-800 text-xs font-bold border border-zinc-200">
               🟣 Twitch Interactive
             </span>
           </div>
@@ -109,7 +123,7 @@ export default function LiveArenaPage() {
 
         {/* Matches Grid */}
         {loading ? (
-          <div className="py-20 text-center text-zinc-400">Loading live arena schedule...</div>
+          <div className="py-20 text-center text-zinc-400">Syncing live fixtures and streams...</div>
         ) : filteredMatches.length === 0 ? (
           <div className="apple-card p-12 text-center text-zinc-500">
             <Tv className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
@@ -161,28 +175,34 @@ export default function LiveArenaPage() {
                     {/* Participants score */}
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50">
-                        <div className="flex items-center gap-2 truncate">
+                        <Link
+                          href={`/players/${encodeURIComponent(match.participant1Name || '')}`}
+                          className="flex items-center gap-2 truncate hover:text-emerald-600 transition"
+                        >
                           <span className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 text-xs flex items-center justify-center font-bold">
                             {match.participant1Name ? match.participant1Name.charAt(0) : '?'}
                           </span>
-                          <span className="text-sm font-bold text-zinc-900 truncate">
+                          <span className="text-sm font-bold truncate">
                             {match.participant1Name || 'TBD'}
                           </span>
-                        </div>
+                        </Link>
                         <span className="text-base font-black font-mono text-zinc-950">
                           {match.participant1Score}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50">
-                        <div className="flex items-center gap-2 truncate">
+                        <Link
+                          href={`/players/${encodeURIComponent(match.participant2Name || '')}`}
+                          className="flex items-center gap-2 truncate hover:text-emerald-600 transition"
+                        >
                           <span className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 text-xs flex items-center justify-center font-bold">
                             {match.participant2Name ? match.participant2Name.charAt(0) : '?'}
                           </span>
-                          <span className="text-sm font-bold text-zinc-900 truncate">
+                          <span className="text-sm font-bold truncate">
                             {match.participant2Name || 'TBD'}
                           </span>
-                        </div>
+                        </Link>
                         <span className="text-base font-black font-mono text-zinc-950">
                           {match.participant2Score}
                         </span>
@@ -199,26 +219,36 @@ export default function LiveArenaPage() {
                   </div>
 
                   {/* Actions */}
-                  <Link
-                    href={`/matches/${match.id}`}
-                    className={`w-full py-2.5 rounded-xl font-bold text-xs text-center transition flex items-center justify-center gap-1.5 ${
-                      isLive
-                        ? 'bg-black text-white hover:bg-zinc-800'
-                        : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'
-                    }`}
-                  >
-                    {isLive ? (
-                      <>
-                        <Tv className="w-4 h-4 text-rose-500" />
-                        <span>Watch Live Match</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Open Match Viewer</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </Link>
+                  <div className="space-y-2 pt-2">
+                    <Link
+                      href={`/matches/${match.id}`}
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs text-center transition flex items-center justify-center gap-1.5 ${
+                        isLive
+                          ? 'bg-black text-white hover:bg-zinc-800'
+                          : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'
+                      }`}
+                    >
+                      {isLive ? (
+                        <>
+                          <Tv className="w-4 h-4 text-rose-500" />
+                          <span>Watch Live Match</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Open Match Viewer</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </Link>
+
+                    <button
+                      onClick={() => setSelectedFlyerMatch(match)}
+                      className="w-full py-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-950 text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-zinc-200"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Share Matchday Card (WhatsApp)</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -226,6 +256,15 @@ export default function LiveArenaPage() {
         )}
 
       </div>
+
+      {/* Matchday Graphic Modal */}
+      {selectedFlyerMatch && (
+        <MatchdayFlyerModal
+          match={selectedFlyerMatch}
+          isOpen={true}
+          onClose={() => setSelectedFlyerMatch(null)}
+        />
+      )}
     </div>
   );
 }

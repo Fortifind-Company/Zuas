@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import TwitchEmbed from '@/components/TwitchEmbed';
-import { TournamentMatch } from '@/lib/types';
+import EvidenceSubmissionModal from '@/components/EvidenceSubmissionModal';
+import MatchdayFlyerModal from '@/components/MatchdayFlyerModal';
+import { TournamentMatch, MatchEvidence } from '@/lib/types';
 import { getTwitchChatEmbedUrl } from '@/lib/twitch';
 import {
   Trophy,
@@ -17,6 +19,12 @@ import {
   MessageSquare,
   ExternalLink,
   Users,
+  Camera,
+  Share2,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  Eye,
 } from 'lucide-react';
 
 export default function MatchDetailPage() {
@@ -24,23 +32,41 @@ export default function MatchDetailPage() {
   const matchId = params.matchId as string;
 
   const [match, setMatch] = useState<TournamentMatch | null>(null);
+  const [evidenceList, setEvidenceList] = useState<MatchEvidence[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'INFO' | 'CHAT' | 'RULES'>('INFO');
+  const [activeTab, setActiveTab] = useState<'INFO' | 'CHAT' | 'EVIDENCE'>('INFO');
   const [chatUrl, setChatUrl] = useState<string>('');
 
-  useEffect(() => {
-    fetch(`/api/matches/${matchId}`)
-      .then(res => res.json())
-      .then(json => {
-        if (json.success && json.data) {
-          setMatch(json.data);
-          if (json.data.twitchChannel && typeof window !== 'undefined') {
-            setChatUrl(getTwitchChatEmbedUrl(json.data.twitchChannel, [window.location.hostname]));
+  // Modals
+  const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
+  const [isFlyerModalOpen, setIsFlyerModalOpen] = useState(false);
+  const [selectedPreviewImage, setSelectedPreviewImage] = useState<string | null>(null);
+
+  const fetchMatchData = () => {
+    Promise.all([
+      fetch(`/api/matches/${matchId}`).then(r => r.json()),
+      fetch(`/api/evidence?matchId=${matchId}`).then(r => r.json()).catch(() => ({ data: [] })),
+    ])
+      .then(([matchRes, evRes]) => {
+        if (matchRes.success && matchRes.data) {
+          setMatch(matchRes.data);
+          if (matchRes.data.twitchChannel && typeof window !== 'undefined') {
+            setChatUrl(getTwitchChatEmbedUrl(matchRes.data.twitchChannel, [window.location.hostname]));
           }
+        }
+        if (evRes.success && evRes.data) {
+          setEvidenceList(evRes.data);
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchMatchData();
+    // Poll every 8s for live score sync
+    const interval = setInterval(fetchMatchData, 8000);
+    return () => clearInterval(interval);
   }, [matchId]);
 
   if (loading) {
@@ -69,8 +95,8 @@ export default function MatchDetailPage() {
     <div className="bg-white min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 text-xs">
+        {/* Navigation Breadcrumb & Quick Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-zinc-200 text-xs">
           <Link
             href="/live"
             className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-950 font-semibold transition"
@@ -80,11 +106,21 @@ export default function MatchDetailPage() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <Link href="/bracket" className="text-zinc-600 hover:text-zinc-950 font-semibold">
-              Tournament Bracket
-            </Link>
-            <span className="text-zinc-300">·</span>
-            <span className="text-zinc-400">Match #{match.matchNumber}</span>
+            <button
+              onClick={() => setIsFlyerModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold transition"
+            >
+              <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Share Matchday Card</span>
+            </button>
+
+            <button
+              onClick={() => setIsEvidenceModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition shadow-sm"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Submit Screenshot Evidence</span>
+            </button>
           </div>
         </div>
 
@@ -108,7 +144,17 @@ export default function MatchDetailPage() {
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-white">
-                {match.participant1Name || 'TBD'} vs {match.participant2Name || 'TBD'}
+                {match.participant1Name ? (
+                  <Link href={`/players/${encodeURIComponent(match.participant1Name)}`} className="hover:text-emerald-400 transition">
+                    {match.participant1Name}
+                  </Link>
+                ) : 'TBD'}{' '}
+                vs{' '}
+                {match.participant2Name ? (
+                  <Link href={`/players/${encodeURIComponent(match.participant2Name)}`} className="hover:text-emerald-400 transition">
+                    {match.participant2Name}
+                  </Link>
+                ) : 'TBD'}
               </h1>
             </div>
 
@@ -139,7 +185,7 @@ export default function MatchDetailPage() {
         {/* Main Content Layout: Embedded Player + Match Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Player Stream Video */}
+          {/* Player Stream Video & Evidence Gallery */}
           <div className="lg:col-span-8 space-y-6">
             <TwitchEmbed
               channel={match.twitchChannel}
@@ -149,7 +195,97 @@ export default function MatchDetailPage() {
               scheduledTime={match.scheduledTime}
             />
 
-            {/* Match Rules & Quick Details */}
+            {/* Match Evidence Submissions Section */}
+            <div className="nexa-card p-6 bg-white border border-zinc-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-base font-bold text-zinc-950">Result Evidence & Screenshots</h3>
+                </div>
+                <button
+                  onClick={() => setIsEvidenceModalOpen(true)}
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition"
+                >
+                  + Upload Screenshot
+                </button>
+              </div>
+
+              {evidenceList.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-zinc-50 border border-dashed border-zinc-200 text-center text-xs text-zinc-500">
+                  <p className="font-semibold text-zinc-700">No match screenshot submitted yet.</p>
+                  <p className="text-[11px] text-zinc-400 mt-1">
+                    Players can upload their full-time result screen for referee review and bracket progression.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {evidenceList.map(ev => (
+                    <div
+                      key={ev.id}
+                      className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-zinc-900">{ev.submittedBy}</span>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            ev.status === 'APPROVED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : ev.status === 'REJECTED'
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {ev.status === 'APPROVED' ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : ev.status === 'REJECTED' ? (
+                            <XCircle className="w-3 h-3" />
+                          ) : (
+                            <Clock3 className="w-3 h-3" />
+                          )}
+                          {ev.status === 'APPROVED'
+                            ? 'Approved by Referee'
+                            : ev.status === 'REJECTED'
+                            ? 'Rejected'
+                            : 'Pending Verification'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-zinc-200">
+                        <span className="text-zinc-500">Reported Score:</span>
+                        <span className="font-black text-zinc-950">
+                          {ev.reportedScore1} - {ev.reportedScore2}
+                        </span>
+                      </div>
+
+                      {ev.screenshotUrl && (
+                        <div className="relative group cursor-pointer" onClick={() => setSelectedPreviewImage(ev.screenshotUrl)}>
+                          <img
+                            src={ev.screenshotUrl}
+                            alt="Screenshot proof"
+                            className="w-full h-32 object-cover rounded-xl border border-zinc-200 group-hover:opacity-90 transition"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition rounded-xl flex items-center justify-center text-white text-xs font-bold gap-1">
+                            <Eye className="w-4 h-4" /> View Full Image
+                          </div>
+                        </div>
+                      )}
+
+                      {ev.notes && (
+                        <p className="text-[11px] text-zinc-500 italic bg-white p-2 rounded-lg border border-zinc-100">
+                          &ldquo;{ev.notes}&rdquo;
+                        </p>
+                      )}
+
+                      <span className="text-[10px] text-zinc-400 block">
+                        Submitted: {new Date(ev.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Match Rules & Specifications */}
             <div className="nexa-card p-6">
               <h3 className="text-base font-bold text-zinc-950 mb-3 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -221,6 +357,31 @@ export default function MatchDetailPage() {
                     <span className="text-zinc-900 font-bold block">{match.roundName}</span>
                   </div>
 
+                  {/* Competitor Links */}
+                  <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2">
+                    <span className="text-zinc-400 block font-semibold text-[10px] uppercase">Competitor Dossiers</span>
+                    <div className="flex flex-col gap-1.5">
+                      {match.participant1Name && (
+                        <Link
+                          href={`/players/${encodeURIComponent(match.participant1Name)}`}
+                          className="font-bold text-zinc-900 hover:text-emerald-600 flex items-center justify-between"
+                        >
+                          <span>{match.participant1Name}</span>
+                          <span className="text-[10px] text-zinc-400">View H2H &rarr;</span>
+                        </Link>
+                      )}
+                      {match.participant2Name && (
+                        <Link
+                          href={`/players/${encodeURIComponent(match.participant2Name)}`}
+                          className="font-bold text-zinc-900 hover:text-emerald-600 flex items-center justify-between"
+                        >
+                          <span>{match.participant2Name}</span>
+                          <span className="text-[10px] text-zinc-400">View H2H &rarr;</span>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
                   {match.twitchChannel && (
                     <div className="p-3 rounded-xl bg-purple-50 border border-purple-100 text-purple-950">
                       <span className="font-bold block mb-1">Verified Twitch Stream:</span>
@@ -236,13 +397,21 @@ export default function MatchDetailPage() {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-zinc-100">
+                  <div className="pt-2 space-y-2">
+                    <button
+                      onClick={() => setIsFlyerModalOpen(true)}
+                      className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 transition shadow-sm"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Generate Matchday Flyer
+                    </button>
+
                     <Link
                       href="/bracket"
                       className="w-full py-2.5 rounded-xl bg-zinc-100 text-zinc-900 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-200 transition"
                     >
                       <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                      View Single Elimination Bracket
+                      View Tournament Bracket
                     </Link>
                   </div>
                 </div>
@@ -291,6 +460,37 @@ export default function MatchDetailPage() {
         </div>
 
       </div>
+
+      {/* Modals */}
+      <EvidenceSubmissionModal
+        match={match}
+        isOpen={isEvidenceModalOpen}
+        onClose={() => setIsEvidenceModalOpen(false)}
+        onSubmitted={ev => {
+          setEvidenceList(prev => [ev, ...prev]);
+          fetchMatchData();
+        }}
+      />
+
+      <MatchdayFlyerModal
+        match={match}
+        isOpen={isFlyerModalOpen}
+        onClose={() => setIsFlyerModalOpen(false)}
+      />
+
+      {/* Image Preview Modal */}
+      {selectedPreviewImage && (
+        <div
+          onClick={() => setSelectedPreviewImage(null)}
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+        >
+          <img
+            src={selectedPreviewImage}
+            alt="Full Preview"
+            className="max-w-4xl max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   );
 }

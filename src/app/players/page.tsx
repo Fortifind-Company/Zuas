@@ -1,20 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
-import { getProfiles } from '@/lib/db';
-import { Users, Search, Trophy, Smartphone, ShieldCheck, Award } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Users, Search, Trophy, Smartphone, ShieldCheck, Award, ArrowUpRight } from 'lucide-react';
+
+interface PlayerItem {
+  id: string;
+  displayName: string;
+  fullName: string;
+  platform: 'Android' | 'iOS';
+  inGameId: string;
+  city: string;
+  stats: {
+    tournamentsPlayed: number;
+    matchesWon: number;
+    matchesLost: number;
+    championships: number;
+  };
+}
 
 export default function PlayersPage() {
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState<'ALL' | 'Android' | 'iOS'>('ALL');
-
-  // Load profiles
-  const profiles = [
+  const [players, setPlayers] = useState<PlayerItem[]>([
     {
       id: 'user_1',
       displayName: 'KingPro GH',
       fullName: 'Kofi Asare',
-      platform: 'Android' as const,
+      platform: 'Android',
       inGameId: 'GH-EF-9000',
       city: 'Accra',
       stats: { tournamentsPlayed: 3, matchesWon: 12, matchesLost: 2, championships: 1 },
@@ -23,7 +36,7 @@ export default function PlayersPage() {
       id: 'user_2',
       displayName: 'DarkX',
       fullName: 'Samuel Doe',
-      platform: 'iOS' as const,
+      platform: 'iOS',
       inGameId: 'GH-EF-9001',
       city: 'Kumasi',
       stats: { tournamentsPlayed: 2, matchesWon: 8, matchesLost: 3, championships: 0 },
@@ -32,7 +45,7 @@ export default function PlayersPage() {
       id: 'user_3',
       displayName: 'NanaEsports',
       fullName: 'Nana Yaw',
-      platform: 'Android' as const,
+      platform: 'Android',
       inGameId: 'GH-EF-9002',
       city: 'Tema',
       stats: { tournamentsPlayed: 2, matchesWon: 7, matchesLost: 3, championships: 0 },
@@ -41,7 +54,7 @@ export default function PlayersPage() {
       id: 'user_4',
       displayName: 'FootyStar',
       fullName: 'Kwame Tetteh',
-      platform: 'iOS' as const,
+      platform: 'iOS',
       inGameId: 'GH-EF-9003',
       city: 'Accra',
       stats: { tournamentsPlayed: 2, matchesWon: 6, matchesLost: 4, championships: 0 },
@@ -50,7 +63,7 @@ export default function PlayersPage() {
       id: 'user_5',
       displayName: 'ProLegend',
       fullName: 'Eric Mensah',
-      platform: 'Android' as const,
+      platform: 'Android',
       inGameId: 'GH-EF-9004',
       city: 'Takoradi',
       stats: { tournamentsPlayed: 1, matchesWon: 4, matchesLost: 2, championships: 0 },
@@ -59,7 +72,7 @@ export default function PlayersPage() {
       id: 'user_6',
       displayName: 'KwekuBall',
       fullName: 'Daniel Osei',
-      platform: 'Android' as const,
+      platform: 'Android',
       inGameId: 'GH-EF-9005',
       city: 'Cape Coast',
       stats: { tournamentsPlayed: 1, matchesWon: 3, matchesLost: 2, championships: 0 },
@@ -68,7 +81,7 @@ export default function PlayersPage() {
       id: 'user_7',
       displayName: 'Samurai',
       fullName: 'Michael Boateng',
-      platform: 'iOS' as const,
+      platform: 'iOS',
       inGameId: 'GH-EF-9006',
       city: 'Accra',
       stats: { tournamentsPlayed: 2, matchesWon: 5, matchesLost: 3, championships: 0 },
@@ -77,17 +90,47 @@ export default function PlayersPage() {
       id: 'user_8',
       displayName: 'JayFlex',
       fullName: 'Joseph Annan',
-      platform: 'Android' as const,
+      platform: 'Android',
       inGameId: 'GH-EF-9007',
       city: 'Kasoa',
       stats: { tournamentsPlayed: 1, matchesWon: 2, matchesLost: 2, championships: 0 },
     },
-  ];
+  ]);
 
-  const filtered = profiles.filter((p) => {
+  useEffect(() => {
+    fetch('/api/registrations')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data) {
+          const seen = new Set(players.map(p => p.displayName.toLowerCase()));
+          const extra: PlayerItem[] = [];
+          for (const reg of json.data) {
+            if (!seen.has(reg.displayName.toLowerCase())) {
+              seen.add(reg.displayName.toLowerCase());
+              extra.push({
+                id: reg.profileId || reg.displayName,
+                displayName: reg.displayName,
+                fullName: reg.fullName,
+                platform: reg.platform,
+                inGameId: reg.inGameId,
+                city: 'Ghana',
+                stats: { tournamentsPlayed: 1, matchesWon: 1, matchesLost: 0, championships: 0 },
+              });
+            }
+          }
+          if (extra.length > 0) {
+            setPlayers(prev => [...prev, ...extra]);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const filtered = players.filter((p) => {
     const matchesSearch =
       p.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      p.city.toLowerCase().includes(search.toLowerCase());
+      p.city.toLowerCase().includes(search.toLowerCase()) ||
+      p.inGameId.toLowerCase().includes(search.toLowerCase());
     const matchesPlatform = platformFilter === 'ALL' || p.platform === platformFilter;
     return matchesSearch && matchesPlatform;
   });
@@ -99,26 +142,24 @@ export default function PlayersPage() {
         {/* Header */}
         <div className="border-b border-zinc-200 pb-8 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 text-zinc-900 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-3">
               <Users className="w-3.5 h-3.5" />
-              <span>National Roster & Rankings</span>
+              Official Roster & Leaderboard
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
-              Player Directory
-            </h1>
-            <p className="text-zinc-600 mt-1 text-sm">
-              Verified Ghanaian mobile competitors across Android & iOS.
+            <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight">Competitor Directory</h1>
+            <p className="text-sm text-zinc-500 mt-1">
+              Explore profiles, career head-to-head records, and in-game credentials of verified Ghanaian eFootballers.
             </p>
           </div>
 
           {/* Search bar */}
-          <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <div className="w-full md:w-80 relative">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search player or city..."
+              placeholder="Search player, city, or ID..."
               className="w-full pl-10 pr-4 py-2.5 rounded-full border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-black"
             />
           </div>
@@ -161,10 +202,14 @@ export default function PlayersPage() {
         {/* Players Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filtered.map((player) => (
-            <div key={player.id} className="nexa-card p-6 flex flex-col justify-between">
+            <Link
+              key={player.id}
+              href={`/players/${encodeURIComponent(player.displayName)}`}
+              className="nexa-card p-6 flex flex-col justify-between hover:border-zinc-400 hover:shadow-lg transition group"
+            >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-zinc-950 flex items-center justify-center font-black text-base border border-zinc-200">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-zinc-950 flex items-center justify-center font-black text-base border border-zinc-200 group-hover:bg-zinc-950 group-hover:text-emerald-400 transition">
                     {player.displayName.substring(0, 2).toUpperCase()}
                   </div>
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-800">
@@ -172,7 +217,12 @@ export default function PlayersPage() {
                   </span>
                 </div>
 
-                <h3 className="font-extrabold text-base text-zinc-950 mb-0.5">{player.displayName}</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-base text-zinc-950 group-hover:text-emerald-600 transition">
+                    {player.displayName}
+                  </h3>
+                  <ArrowUpRight className="w-4 h-4 text-zinc-300 group-hover:text-zinc-950 transition" />
+                </div>
                 <span className="text-xs text-zinc-400 block mb-4">{player.city}, Ghana</span>
 
                 <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-center mb-4">
@@ -192,10 +242,10 @@ export default function PlayersPage() {
               </div>
 
               <div className="text-[11px] text-zinc-400 flex items-center justify-between pt-2 border-t border-zinc-100">
-                <span>Verified Account</span>
-                <span className="text-emerald-600 font-semibold">Active Roster</span>
+                <span>View H2H & Stats</span>
+                <span className="text-emerald-600 font-semibold group-hover:underline">Profile &rarr;</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
