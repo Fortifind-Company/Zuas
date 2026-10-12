@@ -411,51 +411,71 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {allMatches.slice(0, 3).map((match) => (
-              <div key={match.id} className="apple-card p-6 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs text-zinc-500 mb-3 pb-2.5 border-b border-black/[0.04]">
-                    <span className="font-semibold text-zinc-700">{match.roundName}</span>
-                    {match.streamStatus === 'LIVE' ? (
-                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Radio className="w-3 h-3 animate-pulse" />
-                        LIVE
-                      </span>
-                    ) : (
-                      <span className="text-zinc-400 font-medium text-[11px]">Match #{match.matchNumber}</span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 mb-5">
-                    <div className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-50/80">
-                      <span className="text-xs font-bold text-zinc-900 truncate">
-                        {match.participant1Name || 'TBD'}
-                      </span>
-                      <span className="text-sm font-black font-mono text-zinc-950">
-                        {match.participant1Score}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-50/80">
-                      <span className="text-xs font-bold text-zinc-900 truncate">
-                        {match.participant2Name || 'TBD'}
-                      </span>
-                      <span className="text-sm font-black font-mono text-zinc-950">
-                        {match.participant2Score}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <Link
-                  href={`/matches/${match.id}`}
-                  className="w-full py-2.5 rounded-2xl bg-zinc-100 hover:bg-black hover:text-white transition text-xs font-bold text-center text-zinc-800"
-                >
-                  View Match Room
-                </Link>
+          {allMatches.length === 0 ? (
+            <div className="apple-card p-12 text-center text-zinc-500 max-w-lg mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-zinc-100 text-zinc-900 flex items-center justify-center mx-auto mb-3 font-bold">
+                ⚽
               </div>
-            ))}
-          </div>
+              <h3 className="text-lg font-bold text-zinc-900 mb-1">
+                Registrations Open — Fixtures Pending
+              </h3>
+              <p className="text-xs text-zinc-500 mb-5 leading-relaxed">
+                Bracket fixtures will be scheduled and broadcast live as soon as competitor registrations close and seeds are locked.
+              </p>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 transition shadow-sm"
+              >
+                Register to Compete &rarr;
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {allMatches.slice(0, 3).map((match) => (
+                <div key={match.id} className="apple-card p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-zinc-500 mb-3 pb-2.5 border-b border-black/[0.04]">
+                      <span className="font-semibold text-zinc-700">{match.roundName}</span>
+                      {match.streamStatus === 'LIVE' ? (
+                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Radio className="w-3 h-3 animate-pulse" />
+                          LIVE
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 font-medium text-[11px]">Match #{match.matchNumber}</span>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 mb-5">
+                      <div className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-50/80">
+                        <span className="text-xs font-bold text-zinc-900 truncate">
+                          {match.participant1Name || 'TBD'}
+                        </span>
+                        <span className="text-sm font-black font-mono text-zinc-950">
+                          {match.participant1Score}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-50/80">
+                        <span className="text-xs font-bold text-zinc-900 truncate">
+                          {match.participant2Name || 'TBD'}
+                        </span>
+                        <span className="text-sm font-black font-mono text-zinc-950">
+                          {match.participant2Score}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/matches/${match.id}`}
+                    className="w-full py-2.5 rounded-2xl bg-zinc-100 hover:bg-black hover:text-white transition text-xs font-bold text-center text-zinc-800"
+                  >
+                    View Match Room
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

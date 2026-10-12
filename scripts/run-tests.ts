@@ -6,6 +6,15 @@
  */
 
 import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+
+// Set isolated test database path to avoid polluting live data/db.json
+const TEST_DB_PATH = path.join(process.cwd(), 'data', 'test-db.json');
+process.env.DB_FILE = TEST_DB_PATH;
+if (fs.existsSync(TEST_DB_PATH)) {
+  fs.unlinkSync(TEST_DB_PATH);
+}
 import {
   extractTwitchChannel,
   isValidTwitchChannel,
@@ -475,6 +484,12 @@ test('Feature 8: National Elo Rating Engine & Dynamic Ladder', () => {
 console.log(`\n================================`);
 console.log(`Test Results: ${testsPassed} Passed, ${testsFailed} Failed`);
 console.log(`================================\n`);
+
+if (fs.existsSync(TEST_DB_PATH)) {
+  try {
+    fs.unlinkSync(TEST_DB_PATH);
+  } catch {}
+}
 
 if (testsFailed > 0) {
   process.exit(1);

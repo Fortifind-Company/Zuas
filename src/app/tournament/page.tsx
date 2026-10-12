@@ -127,35 +127,50 @@ export default function TournamentPage() {
                 </Link>
               </div>
 
-              <div className="space-y-3">
-                {scheduledMatches.slice(0, 5).map((match) => (
-                  <div
-                    key={match.id}
-                    className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-between"
+              {scheduledMatches.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-zinc-50 border border-zinc-200 text-center text-xs text-zinc-500">
+                  <p className="font-bold text-zinc-900 text-sm mb-1">Awaiting Registration Close</p>
+                  <p className="text-zinc-500 max-w-sm mx-auto mb-4">
+                    Fixtures and kickoff times will be posted here once all participant slots are confirmed and the tournament bracket is generated.
+                  </p>
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 transition"
                   >
-                    <div>
-                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
-                        {match.roundName} · Match #{match.matchNumber}
-                      </span>
-                      <span className="text-sm font-bold text-zinc-900">
-                        {match.participant1Name || 'TBD'} vs {match.participant2Name || 'TBD'}
-                      </span>
-                    </div>
+                    Register for Championship &rarr;
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {scheduledMatches.slice(0, 5).map((match) => (
+                    <div
+                      key={match.id}
+                      className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                          {match.roundName} · Match #{match.matchNumber}
+                        </span>
+                        <span className="text-sm font-bold text-zinc-900">
+                          {match.participant1Name || 'TBD'} vs {match.participant2Name || 'TBD'}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-zinc-200 text-zinc-700">
-                        {match.status}
-                      </span>
-                      <Link
-                        href={`/matches/${match.id}`}
-                        className="nexa-btn-secondary text-xs px-3 py-1.5"
-                      >
-                        Watch
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-zinc-200 text-zinc-700">
+                          {match.status}
+                        </span>
+                        <Link
+                          href={`/matches/${match.id}`}
+                          className="nexa-btn-secondary text-xs px-3 py-1.5"
+                        >
+                          Watch
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

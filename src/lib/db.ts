@@ -43,11 +43,20 @@ interface DatabaseSchema {
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DB_DIR, 'db.json');
+export function getDbFilePath(): string {
+  if (process.env.DB_FILE) {
+    return path.isAbsolute(process.env.DB_FILE)
+      ? process.env.DB_FILE
+      : path.join(process.cwd(), process.env.DB_FILE);
+  }
+  return path.join(DB_DIR, 'db.json');
+}
 
 function ensureDbDirectory(): void {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+  const file = getDbFilePath();
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
 
@@ -201,14 +210,15 @@ function getInitialData(): DatabaseSchema {
 
 export function readDb(): DatabaseSchema {
   ensureDbDirectory();
+  const dbFile = getDbFilePath();
   let db: DatabaseSchema;
-  if (!fs.existsSync(DB_FILE)) {
+  if (!fs.existsSync(dbFile)) {
     db = getInitialData();
     writeDb(db);
     return db;
   }
   try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
+    const raw = fs.readFileSync(dbFile, 'utf-8');
     db = JSON.parse(raw);
   } catch (error) {
     console.error('Error reading database file, reinitializing with fresh state:', error);
@@ -232,8 +242,8 @@ export function readDb(): DatabaseSchema {
     db.notifications = initial.notifications;
     modified = true;
   }
-  if (!db.rankings || db.rankings.length === 0) {
-    db.rankings = initial.rankings;
+  if (!db.rankings) {
+    db.rankings = [];
     modified = true;
   }
   if (!db.groups) {
@@ -253,7 +263,8 @@ export function readDb(): DatabaseSchema {
 
 export function writeDb(data: DatabaseSchema): void {
   ensureDbDirectory();
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  const dbFile = getDbFilePath();
+  fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 // ---------------- TOURNAMENTS ----------------
