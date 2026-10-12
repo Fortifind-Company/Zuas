@@ -397,6 +397,59 @@ export default function MatchDetailPage() {
                     </div>
                   )}
 
+                  {/* Live Stream Broadcast Connector */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 to-zinc-50 border border-purple-200/80 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-purple-950 uppercase tracking-wider flex items-center gap-1.5">
+                        <Radio className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
+                        Broadcast Stream
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        match.streamStatus === 'LIVE'
+                          ? 'bg-rose-500 text-white animate-pulse'
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {match.streamStatus || 'UNLINKED'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-600 leading-tight">
+                      Playing this match? Link your Twitch username so Ghanaian viewers can watch you live in the Live Arena.
+                    </p>
+
+                    <button
+                      onClick={async () => {
+                        const defaultChannel = match.twitchChannel || '';
+                        const input = window.prompt('Enter your Twitch channel name or URL (e.g. your_channel_name):', defaultChannel);
+                        if (input !== null) {
+                          try {
+                            const res = await fetch(`/api/matches/${match.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                action: 'STREAM',
+                                twitchChannel: input.trim(),
+                                streamStatus: input.trim() ? 'LIVE' : 'NONE',
+                              }),
+                            });
+                            const json = await res.json();
+                            if (json.success) {
+                              fetchMatchData();
+                            } else {
+                              alert(json.error || 'Failed to update stream');
+                            }
+                          } catch (err: any) {
+                            alert(err.message || 'Network error');
+                          }
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm"
+                    >
+                      <Tv className="w-3.5 h-3.5" />
+                      <span>{match.twitchChannel ? 'Update / Go Live on Stream' : 'Connect & Go Live on Twitch'}</span>
+                    </button>
+                  </div>
+
                   <div className="pt-2 space-y-2">
                     <button
                       onClick={() => setIsFlyerModalOpen(true)}

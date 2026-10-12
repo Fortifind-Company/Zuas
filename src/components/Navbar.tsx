@@ -128,8 +128,14 @@ export default function Navbar() {
               >
                 Sign In
               </Link>
+              <Link
+                href="/signup"
+                className="text-xs font-semibold px-3 py-1.5 text-zinc-900 border border-black/[0.1] hover:bg-zinc-50 rounded-full transition"
+              >
+                Sign Up
+              </Link>
               <Link href="/register" className="apple-btn-primary text-xs py-2 px-4">
-                <span>Register</span>
+                <span>Join Cup</span>
                 <ChevronRight className="w-3.5 h-3.5 opacity-70" />
               </Link>
             </div>

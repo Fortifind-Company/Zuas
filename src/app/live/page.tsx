@@ -125,14 +125,32 @@ export default function LiveArenaPage() {
         {loading ? (
           <div className="py-20 text-center text-zinc-400">Syncing live fixtures and streams...</div>
         ) : filteredMatches.length === 0 ? (
-          <div className="apple-card p-12 text-center text-zinc-500">
-            <Tv className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
-            <h4 className="text-lg font-bold text-zinc-800 mb-1">No Matches Found in this Filter</h4>
-            <p className="text-sm text-zinc-500 max-w-sm mx-auto">
+          <div className="nexa-card p-12 text-center text-zinc-500 max-w-xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-4 border border-purple-100">
+              <Tv className="w-8 h-8" />
+            </div>
+            <h4 className="text-xl font-black text-zinc-950 mb-2">
+              {filter === 'LIVE' ? 'No Active Live Broadcasts Right Now' : 'Matches Awaiting Kickoff'}
+            </h4>
+            <p className="text-sm text-zinc-600 max-w-md mx-auto mb-6 leading-relaxed">
               {filter === 'LIVE'
-                ? 'There are currently no active live Twitch streams broadcasting. Matches are verified by organizers before being marked live.'
-                : 'Check back soon for newly scheduled tournament fixtures.'}
+                ? 'Players connect their Twitch streams once tournament brackets are generated and matches go live. When competitors begin playing, their interactive Twitch feed automatically appears here.'
+                : 'Tournament fixtures will appear here once competitor registrations conclude and the championship bracket is officially generated.'}
             </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 transition"
+              >
+                Register as a Competitor &rarr;
+              </Link>
+              <Link
+                href="/bracket"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-zinc-100 text-zinc-800 font-bold text-xs hover:bg-zinc-200 transition"
+              >
+                View Tournament Bracket
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

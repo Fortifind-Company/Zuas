@@ -34,11 +34,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickLogin = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError(null);
-  };
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-zinc-50">
@@ -106,44 +101,16 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Quick test credentials */}
-        <div className="mt-8 pt-6 border-t border-black/[0.06]">
-          <span className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2.5 text-center">
-            ⚡ Quick-Fill Verified Demo Accounts
-          </span>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@zuas.gh', 'AdminPass2026!')}
-              className="py-2 px-2.5 rounded-xl border border-black/[0.08] bg-zinc-50 hover:bg-zinc-100 text-left transition"
-            >
-              <span className="block text-[10px] font-bold text-zinc-900">👑 Admin</span>
-              <span className="block text-[9px] text-zinc-500 truncate">Superuser</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('referee@zuas.gh', 'RefPass2026!')}
-              className="py-2 px-2.5 rounded-xl border border-black/[0.08] bg-zinc-50 hover:bg-zinc-100 text-left transition"
-            >
-              <span className="block text-[10px] font-bold text-zinc-900">🛡️ Referee</span>
-              <span className="block text-[9px] text-zinc-500 truncate">Match Review</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('player@zuas.gh', 'PlayerPass2026!')}
-              className="py-2 px-2.5 rounded-xl border border-black/[0.08] bg-zinc-50 hover:bg-zinc-100 text-left transition"
-            >
-              <span className="block text-[10px] font-bold text-zinc-900">🎮 Player</span>
-              <span className="block text-[9px] text-zinc-500 truncate">Competitor</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 text-center text-xs text-zinc-500">
-          New to tournament play?{' '}
-          <Link href="/register" className="font-bold text-black hover:underline">
-            Register for Championship
-          </Link>
+        <div className="mt-8 pt-6 border-t border-black/[0.06] text-center space-y-3">
+          <p className="text-xs text-zinc-500">
+            Don&apos;t have an account yet?{' '}
+            <Link href="/signup" className="font-bold text-black hover:underline">
+              Create Gamer Account
+            </Link>
+          </p>
+          <p className="text-[11px] text-zinc-400">
+            Organizers and referees can sign in with their designated credentials.
+          </p>
         </div>
       </div>
     </div>
