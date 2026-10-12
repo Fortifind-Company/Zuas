@@ -199,10 +199,89 @@ export interface GlobalSettings {
 export interface AdminAuditLog {
   id: string;
   action: string;
-  entityType: 'TOURNAMENT' | 'REGISTRATION' | 'MATCH' | 'STREAM' | 'BRACKET' | 'SETTINGS';
+  entityType: 'TOURNAMENT' | 'REGISTRATION' | 'MATCH' | 'STREAM' | 'BRACKET' | 'SETTINGS' | 'AUTH' | 'PAYMENT';
   entityId: string;
   tournamentId?: string;
   details: string;
   performedBy: string;
   performedAt: string;
+}
+
+export type UserRole = 'ADMIN' | 'REFEREE' | 'PLAYER' | 'SPECTATOR';
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  passwordHash: string;
+  salt: string;
+  efootballId?: string;
+  phone?: string;
+  platform?: PlayerPlatform;
+  avatarUrl?: string;
+  createdAt: string;
+}
+
+export interface Session {
+  token: string;
+  userId: string;
+  email: string;
+  role: UserRole;
+  displayName: string;
+  expiresAt: string;
+}
+
+export type PaymentProvider = 'PAYSTACK' | 'MTN_MOMO' | 'TELECEL' | 'AT_MONEY';
+
+export interface PaymentTransaction {
+  id: string;
+  reference: string;
+  tournamentId: string;
+  userId?: string;
+  amountGhc: number;
+  currency: 'GHS';
+  provider: PaymentProvider;
+  customerEmail: string;
+  customerPhone: string;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  metadata?: Record<string, unknown>;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export type NotificationType =
+  | 'MATCH_ALERT'
+  | 'EVIDENCE_UPDATE'
+  | 'REGISTRATION_STATUS'
+  | 'PAYMENT'
+  | 'ANNOUNCEMENT';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  linkUrl?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export type RankTier = 'GRANDMASTER' | 'MASTER' | 'DIAMOND' | 'GOLD' | 'SILVER' | 'BRONZE';
+
+export interface PlayerRanking {
+  playerId: string;
+  displayName: string;
+  efootballId: string;
+  platform: PlayerPlatform;
+  elo: number;
+  peakElo: number;
+  rankTier: RankTier;
+  nationalRank: number;
+  matchesPlayed: number;
+  matchesWon: number;
+  matchesLost: number;
+  winRatePct: number;
 }

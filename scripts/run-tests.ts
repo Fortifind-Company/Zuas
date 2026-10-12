@@ -323,6 +323,121 @@ test('Feature 4: Group Stage Round-Robin Fixtures & Live Standings Calculation',
   assert.strictEqual(p2Standing?.goalDifference, -2);
 });
 
+// 11. Feature 5: User Authentication & RBAC
+import { hashPassword, verifyPassword, createSessionToken, verifySessionToken, hasRequiredRole } from '../src/lib/auth';
+import { getUserByEmail, createUser } from '../src/lib/db';
+
+test('Feature 5: User Authentication & RBAC Session Validation', () => {
+  const { salt, hash } = hashPassword('GhanaPro2026!');
+  assert.strictEqual(verifyPassword('GhanaPro2026!', salt, hash), true, 'Valid password must verify');
+  assert.strictEqual(verifyPassword('WrongPass', salt, hash), false, 'Wrong password must be rejected');
+
+  const testUser = {
+    id: 'user_test_runner',
+    email: 'testrunner@zuas.gh',
+    username: 'testrunner',
+    displayName: 'Test Runner',
+    role: 'REFEREE' as const,
+    passwordHash: hash,
+    salt,
+    createdAt: new Date().toISOString(),
+  };
+
+  const session = createSessionToken(testUser);
+  assert.ok(session.token.includes('.'), 'Session token must be HMAC-signed');
+  
+  const verified = verifySessionToken(session.token);
+  assert.ok(verified, 'Session token must verify successfully');
+  assert.strictEqual(verified?.userId, testUser.id);
+  assert.strictEqual(verified?.role, 'REFEREE');
+
+  // RBAC checks
+  assert.strictEqual(hasRequiredRole('ADMIN', ['REFEREE']), true, 'Admin always has access');
+  assert.strictEqual(hasRequiredRole('REFEREE', ['REFEREE']), true, 'Referee has referee access');
+  assert.strictEqual(hasRequiredRole('PLAYER', ['REFEREE', 'ADMIN']), false, 'Player denied from referee/admin endpoints');
+});
+
+// 12. Feature 6: Paystack & Mobile Money Gateway
+import { generatePaymentReference, initializePayment, verifyPayment } from '../src/lib/payments';
+import { createPayment, getPaymentByReference, updatePaymentStatus } from '../src/lib/db';
+
+test('Feature 6: Ghana Mobile Money & Paystack Payment Engine', async () => {
+  const ref = generatePaymentReference();
+  assert.ok(ref.startsWith('ZUAS-'), 'Reference should have ZUAS prefix');
+
+  const payment = createPayment({
+    reference: ref,
+    tournamentId: 'tourn_ghana_season_1',
+    amountGhc: 50,
+    currency: 'GHS',
+    provider: 'MTN_MOMO',
+    customerEmail: 'player@zuas.gh',
+    customerPhone: '0241234567',
+    status: 'PENDING',
+  });
+
+  assert.strictEqual(payment.status, 'PENDING');
+  const fetched = getPaymentByReference(ref);
+  assert.strictEqual(fetched?.amountGhc, 50);
+
+  const updated = updatePaymentStatus(ref, 'SUCCESS');
+  assert.strictEqual(updated.status, 'SUCCESS', 'Payment status must be marked SUCCESS upon settlement');
+});
+
+// 13. Feature 7: Notifications & WhatsApp Alert Dispatcher
+import { formatGhanaPhone, createMatchCallWhatsAppMessage, getWhatsAppDirectUrl } from '../src/lib/notifications';
+import { createNotification, getNotifications, markNotificationAsRead } from '../src/lib/db';
+
+test('Feature 7: Automated Notifications & WhatsApp Match Dispatcher', () => {
+  const phone = formatGhanaPhone('0241234567');
+  assert.strictEqual(phone, '233241234567', 'Ghana phone must be formatted to E.164');
+
+  const message = createMatchCallWhatsAppMessage('KingPro GH', 'Quarter-Finals', '16:00 GMT', 'https://zuas.gh/matches/m_1');
+  assert.ok(message.includes('MATCH CALL'), 'Message must contain MATCH CALL');
+  assert.ok(message.includes('Quarter-Finals'));
+
+  const url = getWhatsAppDirectUrl('0241234567', message);
+  assert.ok(url.startsWith('https://wa.me/233241234567?text='), 'Must produce valid wa.me URL');
+
+  // In-app notifications
+  const notif = createNotification({
+    userId: 'user_player',
+    title: 'Match Scheduled',
+    message: 'Your QF fixture is scheduled.',
+    type: 'MATCH_ALERT',
+    read: false,
+  });
+
+  assert.strictEqual(notif.read, false);
+  const markRes = markNotificationAsRead(notif.id, 'user_player');
+  assert.strictEqual(markRes, true);
+});
+
+// 14. Feature 8: National Elo Rating Engine
+import { computeMatchElo, getRankTier, BASE_ELO } from '../src/lib/elo';
+import { getRankings, updatePlayerEloRatings } from '../src/lib/db';
+
+test('Feature 8: National Elo Rating Engine & Dynamic Ladder', () => {
+  assert.strictEqual(getRankTier(1850), 'GRANDMASTER');
+  assert.strictEqual(getRankTier(1620), 'MASTER');
+  assert.strictEqual(getRankTier(1480), 'DIAMOND');
+  assert.strictEqual(getRankTier(1350), 'GOLD');
+  assert.strictEqual(getRankTier(1200), 'SILVER');
+  assert.strictEqual(getRankTier(1000), 'BRONZE');
+
+  // Compute head to head outcome
+  const { newRatingA, newRatingB, deltaA, deltaB } = computeMatchElo(1400, 1400, 1);
+  assert.strictEqual(deltaA > 0, true, 'Winner must gain Elo');
+  assert.strictEqual(deltaB < 0, true, 'Loser must lose Elo');
+  assert.strictEqual(newRatingA, 1416, 'At equal rating, K=32 win yields +16');
+  assert.strictEqual(newRatingB, 1384, 'At equal rating, K=32 loss yields -16');
+
+  const rankings = getRankings();
+  assert.ok(rankings.length > 0, 'Rankings ladder must have ranked players');
+  assert.strictEqual(rankings[0].nationalRank, 1, 'Top player must have rank #1');
+  assert.ok(rankings[0].elo >= rankings[1].elo, 'Ladder must be sorted descending by Elo');
+});
+
 console.log(`\n================================`);
 console.log(`Test Results: ${testsPassed} Passed, ${testsFailed} Failed`);
 console.log(`================================\n`);

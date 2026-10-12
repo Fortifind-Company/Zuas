@@ -15,11 +15,15 @@ import {
   Sliders,
   History,
   Shield,
+  CreditCard,
+  LogOut,
   ExternalLink,
 } from 'lucide-react';
+import { useAuth } from '@/lib/useAuth';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const links = [
     { href: '/admin', label: 'Overview', icon: LayoutDashboard },
@@ -29,6 +33,7 @@ export default function AdminSidebar() {
     { href: '/admin/registrations', label: 'Registrations', icon: Users },
     { href: '/admin/matches', label: 'Match Manager', icon: Swords },
     { href: '/admin/bracket', label: 'Bracket Generator', icon: Trophy },
+    { href: '/admin/payments', label: 'Payment Ledger', icon: CreditCard },
     { href: '/admin/streams', label: 'Twitch Streams', icon: Tv },
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { href: '/admin/settings', label: 'Global Settings', icon: Sliders },
@@ -55,6 +60,32 @@ export default function AdminSidebar() {
           </Link>
         </div>
 
+        {/* User Card */}
+        {user && (
+          <div className="mb-4 p-3 rounded-2xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center border border-emerald-500/30">
+                {user.displayName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <span className="block text-xs font-bold text-white truncate">
+                  {user.displayName}
+                </span>
+                <span className="block text-[10px] font-semibold text-emerald-400">
+                  {user.role}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 rounded-lg transition"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Navigation list */}
         <nav className="space-y-1">
           {links.map((link) => {
@@ -65,7 +96,7 @@ export default function AdminSidebar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                   active
                     ? 'bg-zinc-800 text-white font-bold'
                     : link.highlight

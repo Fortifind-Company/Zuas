@@ -406,6 +406,37 @@ export default function MatchDetailPage() {
                       Generate Matchday Flyer
                     </button>
 
+                    <button
+                      onClick={async () => {
+                        const targetName = match.participant1Name || 'Player';
+                        const promptPhone = window.prompt(`Enter Ghana WhatsApp number for ${targetName} (e.g. 0241234567):`, '0241000003');
+                        if (promptPhone) {
+                          try {
+                            const res = await fetch('/api/notifications/dispatch', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                matchId: match.id,
+                                phone: promptPhone,
+                                recipientName: targetName,
+                                type: 'MATCH_ALERT',
+                              }),
+                            });
+                            const json = await res.json();
+                            if (json.success && json.data?.whatsAppUrl) {
+                              window.open(json.data.whatsAppUrl, '_blank');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-100 transition shadow-sm"
+                    >
+                      <span>📲</span>
+                      Send WhatsApp Match Call
+                    </button>
+
                     <Link
                       href="/bracket"
                       className="w-full py-2.5 rounded-xl bg-zinc-100 text-zinc-900 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-200 transition"

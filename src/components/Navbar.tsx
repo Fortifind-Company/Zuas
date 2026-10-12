@@ -3,20 +3,23 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Tv, Users, FileText, Menu, X, Shield, ChevronRight, Sparkles } from 'lucide-react';
+import { Trophy, Tv, Users, FileText, Menu, X, Shield, ChevronRight, Sparkles, LogOut, User as UserIcon } from 'lucide-react';
+import NotificationCenter from '@/components/NotificationCenter';
+import { useAuth } from '@/lib/useAuth';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const navLinks = [
     { href: '/', label: 'Overview' },
     { href: '/tournament', label: 'Tournament' },
+    { href: '/rankings', label: 'Rankings' },
     { href: '/live', label: 'Live Arena', badge: 'LIVE' },
     { href: '/bracket', label: 'Bracket' },
     { href: '/players', label: 'Players' },
     { href: '/rules', label: 'Rules' },
-    { href: '/contact', label: 'Contact' },
   ];
 
   const isActive = (href: string) => {
@@ -28,7 +31,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-black/[0.06] transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
         
-        {/* Brand Logo - Apple aesthetic with cute gaming icon */}
+        {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-[14px] bg-black text-white flex items-center justify-center font-black text-lg shadow-sm group-hover:scale-105 transition-all duration-300">
             ⚡
@@ -48,7 +51,7 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav Links - Apple Pill Design */}
+        {/* Desktop Nav Links */}
         <nav className="hidden md:flex items-center gap-1 bg-zinc-100/70 p-1.5 rounded-full border border-black/[0.04]">
           {navLinks.map((link) => {
             const active = isActive(link.href);
@@ -56,7 +59,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
+                className={`relative px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
                   active
                     ? 'bg-white text-black shadow-sm'
                     : 'text-zinc-600 hover:text-black hover:bg-white/50'
@@ -76,40 +79,81 @@ export default function Navbar() {
         </nav>
 
         {/* Right Action buttons */}
-        <div className="hidden md:flex items-center gap-3">
-          {/* Ghana Region Capsule */}
-          <div className="apple-badge text-xs bg-zinc-50 border-black/[0.05]">
-            <span>🇬🇭</span>
-            <span className="font-semibold text-zinc-900">Accra</span>
-            <span className="text-zinc-300">·</span>
-            <span className="text-emerald-700 font-bold">Free Entry</span>
-          </div>
+        <div className="hidden md:flex items-center gap-2.5">
+          {/* Notifications */}
+          <NotificationCenter />
 
-          <Link
-            href="/admin"
-            className="text-xs font-semibold px-3 py-1.5 text-zinc-500 hover:text-black hover:bg-zinc-100/80 rounded-full transition"
-            title="Tournament Command Portal"
-          >
-            <span className="flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" />
-              Admin
-            </span>
-          </Link>
+          {/* User Auth or Sign In */}
+          {user ? (
+            <div className="flex items-center gap-2 pl-1">
+              <div className="flex items-center gap-2 bg-zinc-100/80 pl-2 pr-3 py-1 rounded-full border border-black/[0.05]">
+                <div className="w-6 h-6 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+                  {user.displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold text-zinc-900 leading-tight">
+                    {user.displayName.split(' ')[0]}
+                  </span>
+                  <span className="text-[9px] font-semibold text-emerald-700 leading-none">
+                    {user.role}
+                  </span>
+                </div>
+              </div>
 
-          <Link href="/register" className="apple-btn-primary text-xs py-2.5 px-5">
-            <span>Register Now</span>
-            <ChevronRight className="w-3.5 h-3.5 opacity-70" />
-          </Link>
+              {(user.role === 'ADMIN' || user.role === 'REFEREE') && (
+                <Link
+                  href="/admin"
+                  className="text-xs font-semibold px-3 py-1.5 text-zinc-600 hover:text-black hover:bg-zinc-100 rounded-full transition flex items-center gap-1"
+                  title="Admin Command Portal"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={logout}
+                className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="text-xs font-semibold px-3 py-1.5 text-zinc-600 hover:text-black hover:bg-zinc-100 rounded-full transition"
+              >
+                Sign In
+              </Link>
+              <Link href="/register" className="apple-btn-primary text-xs py-2 px-4">
+                <span>Register</span>
+                <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Mobile menu button */}
         <div className="flex md:hidden items-center gap-2">
-          <Link
-            href="/register"
-            className="text-xs font-bold px-3 py-1.5 rounded-full bg-black text-white"
-          >
-            Register
-          </Link>
+          <NotificationCenter />
+          {user ? (
+            <button
+              onClick={logout}
+              className="text-xs font-bold px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-800"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="text-xs font-bold px-3 py-1.5 rounded-full bg-black text-white"
+            >
+              Sign In
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -124,13 +168,6 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-black/[0.06] bg-white/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2 shadow-xl">
-          <div className="apple-badge w-full justify-between mb-3 text-xs">
-            <span className="flex items-center gap-1.5">
-              <span>🇬🇭</span>
-              <span className="font-semibold">Ghanaian Esports Community</span>
-            </span>
-            <span className="text-emerald-700 font-bold">100% Free Entry</span>
-          </div>
           {navLinks.map((link) => (
             <Link
               key={link.href}

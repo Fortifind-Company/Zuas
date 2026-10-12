@@ -13,10 +13,16 @@ import {
   MatchEvidence,
   TournamentGroup,
   HeadToHeadStats,
+  User,
+  PaymentTransaction,
+  Notification,
+  PlayerRanking,
 } from './types';
 import { generateSingleEliminationBracket, advanceBracketWinner } from './bracketGenerator';
 import { generateGroupStageAndMatches, recalculateGroupStandings } from './groupStageGenerator';
 import { extractTwitchChannel } from './twitch';
+import { computeMatchElo, getRankTier, BASE_ELO } from './elo';
+import { hashPassword } from './auth';
 
 interface DatabaseSchema {
   tournaments: Tournament[];
@@ -30,6 +36,10 @@ interface DatabaseSchema {
   auditLogs: AdminAuditLog[];
   groups: TournamentGroup[];
   evidence: MatchEvidence[];
+  users: User[];
+  payments: PaymentTransaction[];
+  notifications: Notification[];
+  rankings: PlayerRanking[];
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -241,6 +251,98 @@ function getInitialData(): DatabaseSchema {
     },
   ];
 
+  const adminPass = hashPassword('AdminPass2026!');
+  const refPass = hashPassword('RefPass2026!');
+  const playerPass = hashPassword('PlayerPass2026!');
+
+  const initialUsers: User[] = [
+    {
+      id: 'user_admin',
+      email: 'admin@zuas.gh',
+      username: 'admin',
+      displayName: 'Chief Tournament Admin',
+      role: 'ADMIN',
+      passwordHash: adminPass.hash,
+      salt: adminPass.salt,
+      phone: '+233241000001',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'user_referee',
+      email: 'referee@zuas.gh',
+      username: 'referee',
+      displayName: 'Lead Match Official',
+      role: 'REFEREE',
+      passwordHash: refPass.hash,
+      salt: refPass.salt,
+      phone: '+233241000002',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'user_player',
+      email: 'player@zuas.gh',
+      username: 'kingpro',
+      displayName: 'KingPro GH',
+      role: 'PLAYER',
+      passwordHash: playerPass.hash,
+      salt: playerPass.salt,
+      efootballId: 'EF-8921-GH',
+      phone: '+233241000003',
+      platform: 'Android',
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const eloSeeds = [1860, 1720, 1630, 1580, 1490, 1420, 1370, 1310, 1260, 1210];
+  const initialRankings: PlayerRanking[] = profiles.map((p, idx) => {
+    const elo = eloSeeds[idx] || 1200;
+    const matchesPlayed = p.stats?.matchesPlayed || 12;
+    const matchesWon = p.stats?.matchesWon || 8;
+    const matchesLost = p.stats?.matchesLost || (matchesPlayed - matchesWon);
+    const winRatePct = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 60;
+
+    return {
+      playerId: p.id,
+      displayName: p.displayName,
+      efootballId: p.inGameId,
+      platform: p.platform,
+      elo,
+      peakElo: elo + 40,
+      rankTier: getRankTier(elo),
+      nationalRank: idx + 1,
+      matchesPlayed,
+      matchesWon,
+      matchesLost,
+      winRatePct,
+    };
+  });
+
+  const initialNotifications: Notification[] = [
+    {
+      id: 'notif_welcome',
+      userId: 'ALL',
+      title: 'Welcome to eFootball Championship',
+      message: 'Season 1 registrations and Live Arena broadcasts are officially live. Fair play is strictly enforced.',
+      type: 'ANNOUNCEMENT',
+      linkUrl: '/rules',
+      read: false,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'notif_match_call',
+      userId: 'user_player',
+      title: 'Match Scheduled: Quarter-Finals',
+      message: 'Your QF fixture has been scheduled. Join your opponent in Friend Match mode.',
+      type: 'MATCH_ALERT',
+      linkUrl: '/matches',
+      read: false,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
   return {
     tournaments: [initialTournament],
     templates: [initialTemplate],
@@ -253,25 +355,63 @@ function getInitialData(): DatabaseSchema {
     auditLogs,
     groups: [],
     evidence: [],
+    users: initialUsers,
+    payments: [],
+    notifications: initialNotifications,
+    rankings: initialRankings,
   };
 }
 
 export function readDb(): DatabaseSchema {
   ensureDbDirectory();
+  let db: DatabaseSchema;
   if (!fs.existsSync(DB_FILE)) {
-    const initial = getInitialData();
-    writeDb(initial);
-    return initial;
+    db = getInitialData();
+    writeDb(db);
+    return db;
   }
   try {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(raw);
+    db = JSON.parse(raw);
   } catch (error) {
     console.error('Error reading database file, reinitializing with fresh state:', error);
-    const initial = getInitialData();
-    writeDb(initial);
-    return initial;
+    db = getInitialData();
+    writeDb(db);
+    return db;
   }
+
+  // Ensure newer collections exist
+  let modified = false;
+  const initial = getInitialData();
+  if (!db.users || db.users.length === 0) {
+    db.users = initial.users;
+    modified = true;
+  }
+  if (!db.payments) {
+    db.payments = [];
+    modified = true;
+  }
+  if (!db.notifications || db.notifications.length === 0) {
+    db.notifications = initial.notifications;
+    modified = true;
+  }
+  if (!db.rankings || db.rankings.length === 0) {
+    db.rankings = initial.rankings;
+    modified = true;
+  }
+  if (!db.groups) {
+    db.groups = [];
+    modified = true;
+  }
+  if (!db.evidence) {
+    db.evidence = [];
+    modified = true;
+  }
+  if (modified) {
+    writeDb(db);
+  }
+
+  return db;
 }
 
 export function writeDb(data: DatabaseSchema): void {
@@ -707,6 +847,12 @@ export function updateMatchScore(
     performedAt: new Date().toISOString(),
   });
 
+  // Automatically update Elo ratings and national rankings for participants
+  if (targetMatch.participant1Id && targetMatch.participant2Id) {
+    const loserId = winnerId === targetMatch.participant1Id ? targetMatch.participant2Id : targetMatch.participant1Id;
+    updatePlayerEloRatings(winnerId, loserId);
+  }
+
   writeDb(db);
   return db.matches.find(m => m.id === matchId)!;
 }
@@ -991,4 +1137,256 @@ export function updateSettings(updates: Partial<GlobalSettings>): GlobalSettings
   };
   writeDb(db);
   return db.settings;
+}
+
+// ---------------- USERS & AUTH ----------------
+export function getUsers(): User[] {
+  return readDb().users;
+}
+
+export function getUserById(id: string): User | null {
+  return readDb().users.find(u => u.id === id) || null;
+}
+
+export function getUserByEmail(email: string): User | null {
+  return readDb().users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+}
+
+export function createUser(userData: Omit<User, 'id' | 'createdAt'>): User {
+  const db = readDb();
+  if (db.users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+    throw new Error('User with this email already exists.');
+  }
+  const newUser: User = {
+    ...userData,
+    id: `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.users.push(newUser);
+
+  db.auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    action: 'USER_REGISTERED',
+    entityType: 'AUTH',
+    entityId: newUser.id,
+    details: `User registered: ${newUser.displayName} (${newUser.email}, role: ${newUser.role})`,
+    performedBy: newUser.displayName,
+    performedAt: new Date().toISOString(),
+  });
+
+  writeDb(db);
+  return newUser;
+}
+
+export function updateUser(id: string, updates: Partial<User>): User {
+  const db = readDb();
+  const user = db.users.find(u => u.id === id);
+  if (!user) throw new Error('User not found.');
+  Object.assign(user, updates);
+  writeDb(db);
+  return user;
+}
+
+// ---------------- PAYMENTS ----------------
+export function getPayments(): PaymentTransaction[] {
+  return readDb().payments;
+}
+
+export function getPaymentByReference(reference: string): PaymentTransaction | null {
+  return readDb().payments.find(p => p.reference === reference) || null;
+}
+
+export function createPayment(data: Omit<PaymentTransaction, 'id' | 'createdAt'>): PaymentTransaction {
+  const db = readDb();
+  const newPayment: PaymentTransaction = {
+    ...data,
+    id: `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.payments.unshift(newPayment);
+
+  db.auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    action: 'PAYMENT_INITIALIZED',
+    entityType: 'PAYMENT',
+    entityId: newPayment.id,
+    tournamentId: newPayment.tournamentId,
+    details: `Payment reference ${newPayment.reference} created for GH₵${newPayment.amountGhc} via ${newPayment.provider}`,
+    performedBy: newPayment.customerEmail,
+    performedAt: new Date().toISOString(),
+  });
+
+  writeDb(db);
+  return newPayment;
+}
+
+export function updatePaymentStatus(
+  reference: string,
+  status: 'SUCCESS' | 'FAILED',
+  paidAt?: string
+): PaymentTransaction {
+  const db = readDb();
+  const payment = db.payments.find(p => p.reference === reference);
+  if (!payment) throw new Error('Payment not found.');
+
+  payment.status = status;
+  if (paidAt) payment.paidAt = paidAt;
+
+  db.auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    action: `PAYMENT_${status}`,
+    entityType: 'PAYMENT',
+    entityId: payment.id,
+    tournamentId: payment.tournamentId,
+    details: `Payment reference ${payment.reference} updated to ${status}`,
+    performedBy: 'System / Gateway',
+    performedAt: new Date().toISOString(),
+  });
+
+  // If payment succeeded, automatically verify and approve registration if pending
+  if (status === 'SUCCESS') {
+    const reg = db.registrations.find(
+      r => r.tournamentId === payment.tournamentId && r.email.toLowerCase() === payment.customerEmail.toLowerCase()
+    );
+    if (reg && reg.status === 'PENDING') {
+      reg.status = 'APPROVED';
+      reg.reviewedAt = new Date().toISOString();
+      reg.reviewedBy = 'Payment System (Automated)';
+    }
+  }
+
+  writeDb(db);
+  return payment;
+}
+
+// ---------------- NOTIFICATIONS ----------------
+export function getNotifications(userId?: string): Notification[] {
+  const db = readDb();
+  if (userId) {
+    return db.notifications.filter(n => n.userId === userId || n.userId === 'ALL');
+  }
+  return db.notifications;
+}
+
+export function createNotification(data: Omit<Notification, 'id' | 'createdAt'>): Notification {
+  const db = readDb();
+  const notification: Notification = {
+    ...data,
+    id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.notifications.unshift(notification);
+  writeDb(db);
+  return notification;
+}
+
+export function markNotificationAsRead(id: string, userId: string): boolean {
+  const db = readDb();
+  const notif = db.notifications.find(n => n.id === id && (n.userId === userId || n.userId === 'ALL'));
+  if (notif) {
+    notif.read = true;
+    writeDb(db);
+    return true;
+  }
+  return false;
+}
+
+export function markAllNotificationsAsRead(userId: string): boolean {
+  const db = readDb();
+  db.notifications.forEach(n => {
+    if (n.userId === userId || n.userId === 'ALL') {
+      n.read = true;
+    }
+  });
+  writeDb(db);
+  return true;
+}
+
+// ---------------- RANKINGS & ELO ----------------
+export function getRankings(): PlayerRanking[] {
+  const db = readDb();
+  return [...db.rankings].sort((a, b) => b.elo - a.elo).map((rank, index) => ({
+    ...rank,
+    nationalRank: index + 1,
+  }));
+}
+
+export function getPlayerRanking(playerId: string): PlayerRanking | null {
+  const allRanked = getRankings();
+  return allRanked.find(r => r.playerId === playerId) || null;
+}
+
+export function updatePlayerEloRatings(
+  winnerParticipantId: string,
+  loserParticipantId: string,
+  isDraw: boolean = false
+): { winnerRank: PlayerRanking; loserRank: PlayerRanking } | null {
+  const db = readDb();
+  const winnerPart = db.participants.find(p => p.id === winnerParticipantId);
+  const loserPart = db.participants.find(p => p.id === loserParticipantId);
+
+  if (!winnerPart || !loserPart) return null;
+
+  let winnerRank = db.rankings.find(r => r.playerId === winnerPart.profileId);
+  let loserRank = db.rankings.find(r => r.playerId === loserPart.profileId);
+
+  if (!winnerRank) {
+    winnerRank = {
+      playerId: winnerPart.profileId,
+      displayName: winnerPart.displayName,
+      efootballId: winnerPart.inGameId,
+      platform: winnerPart.platform,
+      elo: BASE_ELO,
+      peakElo: BASE_ELO,
+      rankTier: getRankTier(BASE_ELO),
+      nationalRank: db.rankings.length + 1,
+      matchesPlayed: 0,
+      matchesWon: 0,
+      matchesLost: 0,
+      winRatePct: 0,
+    };
+    db.rankings.push(winnerRank);
+  }
+
+  if (!loserRank) {
+    loserRank = {
+      playerId: loserPart.profileId,
+      displayName: loserPart.displayName,
+      efootballId: loserPart.inGameId,
+      platform: loserPart.platform,
+      elo: BASE_ELO,
+      peakElo: BASE_ELO,
+      rankTier: getRankTier(BASE_ELO),
+      nationalRank: db.rankings.length + 1,
+      matchesPlayed: 0,
+      matchesWon: 0,
+      matchesLost: 0,
+      winRatePct: 0,
+    };
+    db.rankings.push(loserRank);
+  }
+
+  const resultScore = isDraw ? 0.5 : 1;
+  const { newRatingA, newRatingB } = computeMatchElo(winnerRank.elo, loserRank.elo, resultScore);
+
+  winnerRank.elo = newRatingA;
+  winnerRank.peakElo = Math.max(winnerRank.peakElo, newRatingA);
+  winnerRank.rankTier = getRankTier(newRatingA);
+  winnerRank.matchesPlayed += 1;
+  if (!isDraw) winnerRank.matchesWon += 1;
+  winnerRank.winRatePct = Math.round((winnerRank.matchesWon / winnerRank.matchesPlayed) * 100);
+
+  loserRank.elo = newRatingB;
+  loserRank.rankTier = getRankTier(newRatingB);
+  loserRank.matchesPlayed += 1;
+  if (!isDraw) loserRank.matchesLost += 1;
+  loserRank.winRatePct = Math.round((loserRank.matchesWon / loserRank.matchesPlayed) * 100);
+
+  db.rankings.sort((a, b) => b.elo - a.elo);
+  db.rankings.forEach((r, idx) => {
+    r.nationalRank = idx + 1;
+  });
+
+  writeDb(db);
+  return { winnerRank, loserRank };
 }
