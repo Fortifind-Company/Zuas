@@ -136,8 +136,20 @@ export default function RankingsPage() {
                   </tr>
                 ) : rankings.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-zinc-400">
-                      No ranked players matched the criteria.
+                    <td colSpan={8} className="py-16 text-center">
+                      <div className="max-w-sm mx-auto text-center">
+                        <div className="text-3xl mb-3">🏆</div>
+                        <h4 className="text-sm font-black text-zinc-900 mb-1">Inaugural Season Ladder Awaiting Kickoff</h4>
+                        <p className="text-xs text-zinc-500 mb-4">
+                          Official Elo ratings and national rankings will be calibrated dynamically as tournament matches are completed.
+                        </p>
+                        <a
+                          href="/register"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 transition"
+                        >
+                          Register for the Tournament &rarr;
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ) : (

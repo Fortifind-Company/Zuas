@@ -176,44 +176,72 @@ export default function HomePage() {
                         </div>
                       </div>
 
-                      {/* Live Scoreboard Inside Phone */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-semibold px-1">
-                          <span className="text-zinc-300">Quarter Final Match 1</span>
-                          <span className="flex items-center gap-1 text-rose-400 text-[10px] font-bold">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                            LIVE ON TWITCH
-                          </span>
-                        </div>
-
-                        {/* Match Score Display */}
-                        <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800/90 flex items-center justify-between shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="w-8 h-8 rounded-full bg-zinc-800 text-emerald-400 flex items-center justify-center font-bold text-xs">
-                              KP
-                            </span>
-                            <div>
-                              <span className="text-xs font-bold block text-zinc-100">KingPro GH</span>
-                              <span className="text-[9px] text-zinc-500 block">Android</span>
-                            </div>
-                          </div>
-
-                          <div className="text-center px-2">
-                            <span className="text-lg font-black font-mono text-emerald-400">2 - 1</span>
-                            <span className="text-[9px] text-zinc-500 block">62&apos; Live</span>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-right">
-                            <div>
-                              <span className="text-xs font-bold block text-zinc-100">DarkX</span>
-                              <span className="text-[9px] text-zinc-500 block">iOS</span>
-                            </div>
-                            <span className="w-8 h-8 rounded-full bg-zinc-800 text-amber-400 flex items-center justify-center font-bold text-xs">
-                              DX
+                      {/* Live Scoreboard or Registration Status Inside Phone */}
+                      {featuredLiveMatch && featuredLiveMatch.participant1Name ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs font-semibold px-1">
+                            <span className="text-zinc-300">{featuredLiveMatch.roundName}</span>
+                            <span className="flex items-center gap-1 text-rose-400 text-[10px] font-bold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                              LIVE ON TWITCH
                             </span>
                           </div>
+
+                          <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800/90 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="w-8 h-8 rounded-full bg-zinc-800 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                                {featuredLiveMatch.participant1Name.substring(0, 2).toUpperCase()}
+                              </span>
+                              <div>
+                                <span className="text-xs font-bold block text-zinc-100">{featuredLiveMatch.participant1Name}</span>
+                                <span className="text-[9px] text-zinc-500 block">Player 1</span>
+                              </div>
+                            </div>
+
+                            <div className="text-center px-2">
+                              <span className="text-lg font-black font-mono text-emerald-400">
+                                {featuredLiveMatch.participant1Score} - {featuredLiveMatch.participant2Score}
+                              </span>
+                              <span className="text-[9px] text-rose-400 block font-bold">Live Stream</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-right">
+                              <div>
+                                <span className="text-xs font-bold block text-zinc-100">{featuredLiveMatch.participant2Name || 'TBD'}</span>
+                                <span className="text-[9px] text-zinc-500 block">Player 2</span>
+                              </div>
+                              <span className="w-8 h-8 rounded-full bg-zinc-800 text-amber-400 flex items-center justify-center font-bold text-xs">
+                                {featuredLiveMatch.participant2Name ? featuredLiveMatch.participant2Name.substring(0, 2).toUpperCase() : 'P2'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs font-semibold px-1">
+                            <span className="text-zinc-300">{tournament.edition}</span>
+                            <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              REGISTRATIONS OPEN
+                            </span>
+                          </div>
+
+                          <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800/90 text-center shadow-sm space-y-1.5">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="text-xs font-bold text-zinc-300">16-Player Ghana Cup</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                                Free Entry
+                              </span>
+                            </div>
+                            <div className="text-sm font-black text-white">
+                              Prize Pool: GH₵{tournament.prizePoolGhc.toLocaleString()}
+                            </div>
+                            <p className="text-[10px] text-zinc-400">
+                              Android & iOS mobile tacticians · Register to claim seed
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Device Chips inside Phone */}
                       <div className="grid grid-cols-2 gap-2 mt-4">
@@ -230,10 +258,10 @@ export default function HomePage() {
 
                     {/* Phone Bottom CTA */}
                     <Link
-                      href="/live"
+                      href={featuredLiveMatch ? "/live" : "/register"}
                       className="w-full py-3 bg-white text-zinc-950 font-bold text-xs rounded-full text-center hover:bg-zinc-100 transition shadow-sm mt-4"
                     >
-                      Watch Stream on Twitch →
+                      {featuredLiveMatch ? "Watch Stream on Twitch →" : "Register Your Player Tag →"}
                     </Link>
                   </div>
                 </div>

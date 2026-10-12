@@ -69,16 +69,16 @@ function getInitialData(): DatabaseSchema {
     maxParticipants: 16,
     entryFee: 'Free Entry',
     prizePoolGhc: 800,
-    registrationDeadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    startDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-    endDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+    registrationDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    startDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
     timezone: 'Africa/Accra (GMT)',
     rules: '1. All matches played on eFootball Mobile (Online Friend Match). 2. Standard 10-minute match duration with Extra Time and PKs enabled. 3. Standard authentic clubs only; no unauthorized game modifications. 4. Screenshots of final scoreline must be uploaded or verified via referee broadcast.',
     sponsorInfo: 'Supported by Ghanaian Esports Community & Local Gaming Hubs. 1st Place: GH₵450 + Trophy; 2nd Place: GH₵250; 3rd Place: GH₵100.',
     isLiveArenaEnabled: true,
-    status: 'LIVE',
+    status: 'REGISTRATION_OPEN',
     isFeatured: true,
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -91,169 +91,13 @@ function getInitialData(): DatabaseSchema {
     gameTitle: 'eFootball 2025 Mobile',
     gamePlatform: 'Android & iOS',
     rules: initialTournament.rules,
-    prizePoolGhc: 500,
+    prizePoolGhc: 800,
     isDefault: true,
     createdAt: new Date().toISOString(),
   };
 
-  // Seed profiles and participants
-  const playerNames = [
-    { name: 'Kofi Asare', nick: 'KingPro GH', platform: 'Android' as const, id: 'user_1' },
-    { name: 'Samuel Doe', nick: 'DarkX', platform: 'iOS' as const, id: 'user_2' },
-    { name: 'Nana Yaw', nick: 'NanaEsports', platform: 'Android' as const, id: 'user_3' },
-    { name: 'Kwame Tetteh', nick: 'FootyStar', platform: 'iOS' as const, id: 'user_4' },
-    { name: 'Eric Mensah', nick: 'ProLegend', platform: 'Android' as const, id: 'user_5' },
-    { name: 'Daniel Osei', nick: 'KwekuBall', platform: 'Android' as const, id: 'user_6' },
-    { name: 'Michael Boateng', nick: 'Samurai', platform: 'iOS' as const, id: 'user_7' },
-    { name: 'Joseph Annan', nick: 'JayFlex', platform: 'Android' as const, id: 'user_8' },
-    { name: 'Prince Quaye', nick: 'BlackStar_Gamer', platform: 'Android' as const, id: 'user_9' },
-    { name: 'Emmanuel Frimpong', nick: 'AccraStriker', platform: 'iOS' as const, id: 'user_10' },
-    { name: 'Bernard Badu', nick: 'TemaSniper', platform: 'Android' as const, id: 'user_11' },
-    { name: 'George Adom', nick: 'KumasiKicker', platform: 'iOS' as const, id: 'user_12' },
-    { name: 'Isaac Owusu', nick: 'CapeCoastPro', platform: 'Android' as const, id: 'user_13' },
-    { name: 'Richmond Arthur', nick: 'TakoradiAce', platform: 'iOS' as const, id: 'user_14' },
-    { name: 'Godwin Agyeman', nick: 'GoldCoastKing', platform: 'Android' as const, id: 'user_15' },
-    { name: 'David Nortey', nick: 'KasoaChamp', platform: 'Android' as const, id: 'user_16' },
-  ];
-
-  const profiles: PlayerProfile[] = playerNames.map((p, idx) => ({
-    id: p.id,
-    fullName: p.name,
-    displayName: p.nick,
-    email: `${p.nick.toLowerCase().replace(/[^a-z0-9]/g, '')}@efootballgh.org`,
-    phone: `+233 24 123 450${idx}`,
-    platform: p.platform,
-    inGameId: `GH-EF-${9000 + idx}`,
-    avatarUrl: `/avatars/avatar-${(idx % 6) + 1}.png`,
-    bio: `Passionate eFootball Mobile competitor representing ${idx % 2 === 0 ? 'Accra' : 'Kumasi'}, Ghana.`,
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    stats: {
-      tournamentsPlayed: 2,
-      matchesPlayed: 8,
-      matchesWon: 5 + (idx % 3),
-      matchesLost: 3 - (idx % 2),
-      championships: idx === 0 ? 1 : 0,
-    },
-  }));
-
-  const registrations: TournamentRegistration[] = profiles.map((p) => ({
-    id: `reg_${initialTournamentId}_${p.id}`,
-    tournamentId: initialTournamentId,
-    profileId: p.id,
-    fullName: p.fullName,
-    displayName: p.displayName,
-    phone: p.phone,
-    email: p.email,
-    platform: p.platform,
-    inGameId: p.inGameId,
-    status: 'APPROVED',
-    registeredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    reviewedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    reviewedBy: 'Chief Administrator (Accra Esports League)',
-    notes: 'Verified player ID and valid phone contact.',
-  }));
-
-  const participants: TournamentParticipant[] = profiles.map((p, idx) => ({
-    id: `part_${initialTournamentId}_${p.id}`,
-    tournamentId: initialTournamentId,
-    profileId: p.id,
-    displayName: p.displayName,
-    inGameId: p.inGameId,
-    platform: p.platform,
-    seed: idx + 1,
-    status: 'ACTIVE',
-  }));
-
-  // Generate bracket matches
-  const matches = generateSingleEliminationBracket(
-    initialTournamentId,
-    participants,
-    initialTournament.startDate
-  );
-
-  // Mark Quarter Final matches with realistic sample data from reference
-  const qf1 = matches.find(m => m.round === 2 && m.matchNumber === 9);
-  if (qf1) {
-    qf1.participant1Name = 'KingPro GH';
-    qf1.participant2Name = 'DarkX';
-    qf1.participant1Score = 2;
-    qf1.participant2Score = 1;
-    qf1.status = 'LIVE';
-    qf1.twitchChannel = 'kingpro_gh';
-    qf1.twitchUrl = 'https://twitch.tv/kingpro_gh';
-    qf1.streamStatus = 'LIVE';
-    qf1.streamVerifiedAt = new Date().toISOString();
-  }
-
-  const qf2 = matches.find(m => m.round === 2 && m.matchNumber === 10);
-  if (qf2) {
-    qf2.participant1Name = 'NanaEsports';
-    qf2.participant2Name = 'FootyStar';
-    qf2.participant1Score = 0;
-    qf2.participant2Score = 0;
-    qf2.status = 'LIVE';
-    qf2.twitchChannel = 'nanaesports_live';
-    qf2.twitchUrl = 'https://twitch.tv/nanaesports_live';
-    qf2.streamStatus = 'LIVE';
-    qf2.streamVerifiedAt = new Date().toISOString();
-  }
-
-  const announcements: Announcement[] = [
-    {
-      id: 'ann_1',
-      tournamentId: initialTournamentId,
-      title: 'Quarter Finals Underway in Live Arena!',
-      content: 'Quarter Finals Match 1 (KingPro GH vs DarkX) is now officially streaming live. Check the Live Arena page to watch directly.',
-      category: 'STREAM',
-      isPinned: true,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'ann_2',
-      tournamentId: initialTournamentId,
-      title: 'Fair Play & Disconnection Policy Reminder',
-      content: 'In the event of an in-game disconnection, the current scoreline is preserved and the remaining time is replayed. All participants must record their match clips or stream via Twitch.',
-      category: 'URGENT',
-      isPinned: false,
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-
-  const settings: GlobalSettings = {
-    platformName: 'eFootball Mobile Championship Ghana',
-    defaultTimezone: 'Africa/Accra (GMT)',
-    twitchParentDomains: ['localhost', '127.0.0.1', 'zuas.vercel.app'],
-    contactEmail: 'tournaments@efootballghana.org',
-    contactWhatsapp: '+233 24 000 0000',
-    rulesDisclaimer: 'Free to enter esports platform for Ghanaian players. Konami eFootball Mobile is a registered trademark of Konami Digital Entertainment. This community competition is independent and organizer-operated.',
-    updatedAt: new Date().toISOString(),
-  };
-
-  const auditLogs: AdminAuditLog[] = [
-    {
-      id: 'log_init',
-      action: 'PLATFORM_INITIALIZED',
-      entityType: 'SETTINGS',
-      entityId: 'global',
-      details: 'Initialized platform database and configured Ghana Season 1 tournament.',
-      performedBy: 'System Administrator',
-      performedAt: new Date().toISOString(),
-    },
-    {
-      id: 'log_bracket',
-      action: 'BRACKET_GENERATED',
-      entityType: 'BRACKET',
-      entityId: initialTournamentId,
-      tournamentId: initialTournamentId,
-      details: 'Generated 16-player single-elimination tournament bracket with confirmed Ghanaian players.',
-      performedBy: 'Admin Kofi',
-      performedAt: new Date().toISOString(),
-    },
-  ];
-
   const adminPass = hashPassword('AdminPass2026!');
   const refPass = hashPassword('RefPass2026!');
-  const playerPass = hashPassword('PlayerPass2026!');
 
   const initialUsers: User[] = [
     {
@@ -280,76 +124,58 @@ function getInitialData(): DatabaseSchema {
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop',
       createdAt: new Date().toISOString(),
     },
+  ];
+
+  const announcements: Announcement[] = [
     {
-      id: 'user_player',
-      email: 'player@zuas.gh',
-      username: 'kingpro',
-      displayName: 'KingPro GH',
-      role: 'PLAYER',
-      passwordHash: playerPass.hash,
-      salt: playerPass.salt,
-      efootballId: 'EF-8921-GH',
-      phone: '+233241000003',
-      platform: 'Android',
-      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop',
+      id: 'ann_live_1',
+      tournamentId: initialTournamentId,
+      title: 'Registration Officially Open for Season 1 — Accra Cup',
+      content: 'The eFootball Mobile Ghana Championship Season 1 registrations are now open. Cross-play between Android and iOS is fully supported. Register your gamer tag to secure a seed in the 16-player single-elimination bracket.',
+      category: 'GENERAL',
+      isPinned: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'ann_live_2',
+      tournamentId: initialTournamentId,
+      title: 'Official Match Rules & Fair Play Guidelines',
+      content: 'All matches must be played in eFootball Mobile Online Friend Match with standard authentic squads. Disconnections must be reported immediately with full-time screenshot evidence.',
+      category: 'URGENT',
+      isPinned: false,
       createdAt: new Date().toISOString(),
     },
   ];
 
-  const eloSeeds = [1860, 1720, 1630, 1580, 1490, 1420, 1370, 1310, 1260, 1210];
-  const initialRankings: PlayerRanking[] = profiles.map((p, idx) => {
-    const elo = eloSeeds[idx] || 1200;
-    const matchesPlayed = p.stats?.matchesPlayed || 12;
-    const matchesWon = p.stats?.matchesWon || 8;
-    const matchesLost = p.stats?.matchesLost || (matchesPlayed - matchesWon);
-    const winRatePct = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 60;
+  const settings: GlobalSettings = {
+    platformName: 'eFootball Mobile Championship Ghana',
+    defaultTimezone: 'Africa/Accra (GMT)',
+    twitchParentDomains: ['localhost', '127.0.0.1', 'zuas.vercel.app'],
+    contactEmail: 'tournaments@efootballghana.org',
+    contactWhatsapp: '+233 24 000 0000',
+    rulesDisclaimer: 'Free to enter esports platform for Ghanaian players. Konami eFootball Mobile is a registered trademark of Konami Digital Entertainment. This community competition is independent and organizer-operated.',
+    updatedAt: new Date().toISOString(),
+  };
 
-    return {
-      playerId: p.id,
-      displayName: p.displayName,
-      efootballId: p.inGameId,
-      platform: p.platform,
-      elo,
-      peakElo: elo + 40,
-      rankTier: getRankTier(elo),
-      nationalRank: idx + 1,
-      matchesPlayed,
-      matchesWon,
-      matchesLost,
-      winRatePct,
-    };
-  });
-
-  const initialNotifications: Notification[] = [
+  const auditLogs: AdminAuditLog[] = [
     {
-      id: 'notif_welcome',
-      userId: 'ALL',
-      title: 'Welcome to eFootball Championship',
-      message: 'Season 1 registrations and Live Arena broadcasts are officially live. Fair play is strictly enforced.',
-      type: 'ANNOUNCEMENT',
-      linkUrl: '/rules',
-      read: false,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'notif_match_call',
-      userId: 'user_player',
-      title: 'Match Scheduled: Quarter-Finals',
-      message: 'Your QF fixture has been scheduled. Join your opponent in Friend Match mode.',
-      type: 'MATCH_ALERT',
-      linkUrl: '/matches',
-      read: false,
-      createdAt: new Date().toISOString(),
+      id: `log_${Date.now()}`,
+      action: 'PLATFORM_LIVE_INITIALIZED',
+      entityType: 'SETTINGS',
+      entityId: 'global',
+      details: 'Platform initialized for live tournament operations. All mock data cleared.',
+      performedBy: 'System Administrator',
+      performedAt: new Date().toISOString(),
     },
   ];
 
   return {
     tournaments: [initialTournament],
     templates: [initialTemplate],
-    profiles,
-    registrations,
-    participants,
-    matches,
+    profiles: [],
+    registrations: [],
+    participants: [],
+    matches: [],
     announcements,
     settings,
     auditLogs,
@@ -357,8 +183,19 @@ function getInitialData(): DatabaseSchema {
     evidence: [],
     users: initialUsers,
     payments: [],
-    notifications: initialNotifications,
-    rankings: initialRankings,
+    notifications: [
+      {
+        id: 'notif_welcome',
+        userId: 'ALL',
+        title: 'Season 1 Registrations Live',
+        message: 'Welcome to eFootball Championship Ghana. Registrations are open now.',
+        type: 'ANNOUNCEMENT',
+        linkUrl: '/register',
+        read: false,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    rankings: [],
   };
 }
 

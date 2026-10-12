@@ -432,8 +432,42 @@ test('Feature 8: National Elo Rating Engine & Dynamic Ladder', () => {
   assert.strictEqual(newRatingA, 1416, 'At equal rating, K=32 win yields +16');
   assert.strictEqual(newRatingB, 1384, 'At equal rating, K=32 loss yields -16');
 
+  // Create test participants in a tournament and verify dynamic ladder calculation
+  const eloTourney = createTournament({
+    name: 'Elo Calibration Cup',
+    status: 'REGISTRATION_OPEN',
+  });
+  const reg1 = createRegistration({
+    tournamentId: eloTourney.id,
+    fullName: 'Elo Champ',
+    displayName: 'EloChamp',
+    phone: '+233 24 000 1111',
+    email: 'elochamp@ghana.com',
+    platform: 'Android',
+    inGameId: 'ID-ELO-1',
+  });
+  const reg2 = createRegistration({
+    tournamentId: eloTourney.id,
+    fullName: 'Elo Rival',
+    displayName: 'EloRival',
+    phone: '+233 24 000 2222',
+    email: 'elorival@ghana.com',
+    platform: 'iOS',
+    inGameId: 'ID-ELO-2',
+  });
+
+  const bracket = generateBracket(eloTourney.id);
+  assert.ok(bracket.length > 0, 'Bracket should have generated matches');
+  const match = bracket[0];
+
+  const eloUpdate = updatePlayerEloRatings(match.participant1Id!, match.participant2Id!, false);
+  assert.ok(eloUpdate !== null, 'Elo update should return updated player rankings');
+  assert.strictEqual(eloUpdate!.winnerRank.displayName, 'EloChamp');
+  assert.strictEqual(eloUpdate!.winnerRank.elo > BASE_ELO, true, 'Winner Elo must exceed BASE_ELO');
+  assert.strictEqual(eloUpdate!.loserRank.elo < BASE_ELO, true, 'Loser Elo must decrease');
+
   const rankings = getRankings();
-  assert.ok(rankings.length > 0, 'Rankings ladder must have ranked players');
+  assert.ok(rankings.length >= 2, 'Rankings ladder must have dynamically ranked players');
   assert.strictEqual(rankings[0].nationalRank, 1, 'Top player must have rank #1');
   assert.ok(rankings[0].elo >= rankings[1].elo, 'Ladder must be sorted descending by Elo');
 });
