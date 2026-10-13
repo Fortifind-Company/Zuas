@@ -42,21 +42,45 @@ interface DatabaseSchema {
   rankings: PlayerRanking[];
 }
 
-const DB_DIR = path.join(process.cwd(), 'data');
+export function isServerless(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.LAMBDA_TASK_ROOT ||
+    process.env.NETLIFY ||
+    (typeof process.cwd === 'function' && (
+      process.cwd().startsWith('/var/task') ||
+      process.cwd().startsWith('/tmp')
+    ))
+  );
+}
+
 export function getDbFilePath(): string {
+  const serverless = isServerless();
+
   if (process.env.DB_FILE) {
+    if (serverless && !process.env.DB_FILE.startsWith('/tmp')) {
+      return path.join('/tmp', path.basename(process.env.DB_FILE));
+    }
     return path.isAbsolute(process.env.DB_FILE)
       ? process.env.DB_FILE
       : path.join(process.cwd(), process.env.DB_FILE);
   }
-  return path.join(DB_DIR, 'db.json');
+
+  const baseDir = serverless ? '/tmp' : path.join(process.cwd(), 'data');
+  return path.join(baseDir, 'db.json');
 }
 
 function ensureDbDirectory(): void {
-  const file = getDbFilePath();
-  const dir = path.dirname(file);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  try {
+    const file = getDbFilePath();
+    const dir = path.dirname(file);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (err) {
+    console.warn('Could not ensure database directory:', err);
   }
 }
 
@@ -208,22 +232,43 @@ function getInitialData(): DatabaseSchema {
   };
 }
 
+let memoryDbCache: DatabaseSchema | null = null;
+
 export function readDb(): DatabaseSchema {
   ensureDbDirectory();
   const dbFile = getDbFilePath();
   let db: DatabaseSchema;
+
   if (!fs.existsSync(dbFile)) {
-    db = getInitialData();
+    // If in serverless and a pre-bundled data/db.json exists, copy it to the writable path
+    const bundledSeed = path.join(process.cwd(), 'data', 'db.json');
+    if (bundledSeed !== dbFile && fs.existsSync(bundledSeed)) {
+      try {
+        const rawSeed = fs.readFileSync(bundledSeed, 'utf-8');
+        db = JSON.parse(rawSeed);
+        writeDb(db);
+        memoryDbCache = db;
+        return db;
+      } catch (err) {
+        console.warn('Could not load bundled seed database, using initial state:', err);
+      }
+    }
+
+    db = memoryDbCache || getInitialData();
     writeDb(db);
+    memoryDbCache = db;
     return db;
   }
+
   try {
     const raw = fs.readFileSync(dbFile, 'utf-8');
     db = JSON.parse(raw);
+    memoryDbCache = db;
   } catch (error) {
     console.error('Error reading database file, reinitializing with fresh state:', error);
-    db = getInitialData();
+    db = memoryDbCache || getInitialData();
     writeDb(db);
+    memoryDbCache = db;
     return db;
   }
 
@@ -258,13 +303,19 @@ export function readDb(): DatabaseSchema {
     writeDb(db);
   }
 
+  memoryDbCache = db;
   return db;
 }
 
 export function writeDb(data: DatabaseSchema): void {
-  ensureDbDirectory();
-  const dbFile = getDbFilePath();
-  fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf-8');
+  memoryDbCache = data;
+  try {
+    ensureDbDirectory();
+    const dbFile = getDbFilePath();
+    fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn('Warning: Failed to write database to disk (in-memory state preserved):', error);
+  }
 }
 
 // ---------------- TOURNAMENTS ----------------
